@@ -1,0 +1,3 @@
+import type {Metadata} from "next";import { redirect } from "next/navigation";import {WechatCase} from "@/components/Cases";import {CaseShell} from "@/components/CaseShell";import { SHOW_WECHAT_PLATFORM } from "@/data/publication";
+export const metadata:Metadata={title:"企业微信后台搭建｜李阳 Leo",description:"从 0 到 1 搭建面向 500+ 人团队协作的企业微信内部运营系统。"};
+export default function Page(){if(!SHOW_WECHAT_PLATFORM) redirect("/#projects"); return <CaseShell number="01" title={{cn:"企业微信后台搭建",en:"WeCom Backend Setup"}} backHref="/projects/platform" nextHref="/cases/annual-dinner" nextLabel={{cn:"公司年会晚宴",en:"Company Annual Dinner"}}><WechatCase/></CaseShell>}

@@ -1,0 +1,6 @@
+allowBuilds:
+  sharp: true
+confirmModulesPurge: false
+nodeLinker: hoisted
+onlyBuiltDependencies:
+  - sharp
