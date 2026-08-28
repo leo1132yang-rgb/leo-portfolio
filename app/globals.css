@@ -3883,3 +3883,17 @@ body:has(.childhood-reader--story.is-open) .sound-toggle,body:has(.photo-wall-li
   .site-nav__mobile.is-open nav a:nth-child(4){transition-delay:130ms}
   .site-nav__mobile.is-open nav a:nth-child(5){transition-delay:160ms}
 }
+
+/* Targeted mobile fixes: hero label spacing and tool wrap. */
+@media(max-width:767px){
+  .leo-hero__label{margin-bottom:clamp(20px,5.8vw,28px)!important}
+  .leo-hero__identity{margin-top:0}
+  .leo-hero__tools{width:100%;max-width:100%;overflow:visible!important}
+  .leo-hero__tools>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px!important;max-width:100%;overflow:visible!important;padding-bottom:0!important}
+  .leo-hero__tools span{display:flex;min-width:0;min-height:36px;justify-content:flex-start;padding:7px 9px!important}
+  .leo-hero__tools span b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
+@media(min-width:390px) and (max-width:767px){
+  .leo-hero__tools>div{grid-template-columns:repeat(3,minmax(0,1fr))}
+}

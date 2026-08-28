@@ -1,8 +1,8 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { CameraControls, ContactShadows, type CameraControlsImpl } from "@react-three/drei";
-import { useEffect, useMemo, useRef, type ReactElement } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
@@ -323,17 +323,39 @@ function RoomLighting() {
 
 function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId }) {
   const controlsRef = useRef<CameraControlsImpl>(null);
+  const { camera } = useThree();
+  const [isMobileOverview, setIsMobileOverview] = useState(false);
   const preset = leoRoomCameraPresets[activePreset];
+  const effectivePreset = useMemo(
+    () => activePreset === "overview" && isMobileOverview ? {
+      ...preset,
+      position: [-4.35, 7.4, 15.25] as [number, number, number],
+      target: [0, 1.1, -.45] as [number, number, number],
+    } : preset,
+    [activePreset, isMobileOverview, preset],
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobileOverview(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = activePreset === "overview" && isMobileOverview ? 52 : 48;
+      camera.updateProjectionMatrix();
+    }
     void controls.setLookAt(
-      ...preset.position,
-      ...preset.target,
+      ...effectivePreset.position,
+      ...effectivePreset.target,
       true,
     );
-  }, [preset]);
+  }, [activePreset, camera, effectivePreset, isMobileOverview]);
 
   return (
     <CameraControls
