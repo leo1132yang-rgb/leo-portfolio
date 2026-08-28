@@ -3897,3 +3897,27 @@ body:has(.childhood-reader--story.is-open) .sound-toggle,body:has(.photo-wall-li
 @media(min-width:390px) and (max-width:767px){
   .leo-hero__tools>div{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
+
+/* Targeted mobile Room controls. */
+.leo-room__mobile-back{display:none}
+@media(max-width:767px){
+  .leo-room__mobile-back{position:absolute;z-index:42;top:calc(72px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:74px;min-height:44px;padding:0 13px;border:1px solid rgba(230,211,177,.18);border-radius:999px;background:rgba(5,9,13,.62);backdrop-filter:blur(10px);color:rgba(246,240,229,.78);font-size:12px;letter-spacing:.04em}
+  .leo-room.is-reading .leo-room__mobile-back{display:none}
+  .leo-room__world-entry{display:none}
+  .leo-room__focus-card:empty,.leo-room__panel:empty{display:none!important;pointer-events:none!important}
+  .leo-room__childhood-hint{bottom:calc(116px + env(safe-area-inset-bottom));min-height:44px;min-width:188px;padding:10px 16px;border-radius:999px;cursor:pointer;pointer-events:auto}
+  .leo-room__childhood-hint:active{transform:translateX(-50%) scale(.985)}
+  .leo-room__presets{right:12px;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px;overflow:visible}
+  .leo-room__presets button{display:flex;min-width:0;height:40px;justify-content:center;gap:4px;padding:0 5px}
+  .leo-room__presets button small{font-size:7px}
+  .leo-room__presets button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;letter-spacing:.04em}
+  body:has(.leo-room) .sound-toggle{right:calc(14px + env(safe-area-inset-right));bottom:calc(112px + env(safe-area-inset-bottom));z-index:38}
+  body:has(.leo-room.is-reading) .sound-toggle,body:has(.leo-room .photo-wall-lightbox) .sound-toggle{display:none}
+}
+
+@media(max-width:360px){
+  .leo-room__presets{left:8px;right:8px;gap:3px;padding:4px}
+  .leo-room__presets button{height:38px;padding:0 3px}
+  .leo-room__presets button span{font-size:8px}
+  body:has(.leo-room) .sound-toggle{bottom:calc(106px + env(safe-area-inset-bottom))}
+}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useGlobalAudio } from "@/hooks/useGlobalAudio";
@@ -57,6 +58,7 @@ type GalleryViewState = "overview" | "focused" | "lightbox";
 export function OtherSide() {
   const { language } = useLanguage();
   const { switchTrack } = useGlobalAudio();
+  const router = useRouter();
   const cn = language === "cn";
   const [activePreset, setActivePreset] = useState<LeoRoomPresetId>("overview");
   const [focusedItem, setFocusedItem] = useState<FocusCardId | null>(null);
@@ -146,6 +148,36 @@ export function OtherSide() {
     setGalleryViewState("focused");
   };
 
+  const returnFromRoom = () => {
+    if (photoLightboxId) {
+      closePhotoLightbox();
+      return;
+    }
+    if (galleryViewState === "focused") {
+      setGalleryViewState("overview");
+      setPhotoLightboxId(null);
+      setActivePreset("overview");
+      setFocusedItem(null);
+      return;
+    }
+    if (readingOpen) {
+      closeChildhoodReader();
+      return;
+    }
+    if (childhoodViewState === "focused") {
+      clearReadingTimer();
+      setChildhoodViewState("overview");
+      setActivePreset("overview");
+      setFocusedItem(null);
+      return;
+    }
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/other-side");
+  };
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       const isEscape = event.key === "Escape" || event.key === "Esc" || event.key === "ESC" || event.code === "Escape";
@@ -229,10 +261,21 @@ export function OtherSide() {
   };
 
   const panel = focusedItem ? focusContent[focusedItem] : null;
+  const presetCopy: Record<LeoRoomPresetId, string> = {
+    overview: cn ? "总览" : "OVERVIEW",
+    desk: cn ? "工作台" : "DESK",
+    journey: cn ? "童年" : "CHILDHOOD",
+    gallery: cn ? "照片墙" : "GALLERY",
+    digital: cn ? "数字" : "DIGITAL",
+    travel: cn ? "旅行" : "TRAVEL",
+  };
 
   return (
     <main className={`leo-room${childhoodViewState === "reading" ? " is-reading" : ""}`}>
       <SiteNavbar variant="hero" />
+      <button type="button" className="leo-room__mobile-back" onClick={returnFromRoom} aria-label={cn ? "返回" : "Back"}>
+        <span aria-hidden="true">←</span>{cn ? "返回" : "Back"}
+      </button>
       <header className="leo-room__heading">
         <p>{cn ? "LEO 的另一面" : "THE OTHER SIDE"}</p>
         <h1>Leo&apos;s Room <i>/ Leo&apos;s Office</i></h1>
@@ -262,7 +305,7 @@ export function OtherSide() {
             onClick={() => choosePreset(preset.id)}
           >
             <small>0{index + 1}</small>
-            <span>{preset.label}</span>
+            <span>{presetCopy[preset.id]}</span>
           </button>
         ))}
       </nav>
@@ -295,10 +338,10 @@ export function OtherSide() {
       )}
 
       {childhoodViewState === "focused" && !readingOpen && (
-        <div className="leo-room__childhood-hint">
+        <button type="button" className="leo-room__childhood-hint" onClick={() => openChildhoodReader(activeStoryId)}>
           <span>CLICK AGAIN TO ENTER</span>
           <b>{cn ? "再次点击进入故事" : "Enter the story"}</b>
-        </div>
+        </button>
       )}
 
       {galleryViewState === "focused" && !photoLightboxId && (

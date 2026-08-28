@@ -41,14 +41,12 @@ export function LeoHero() {
       return;
     }
 
-    setShouldLoadVideo(false);
-    const loadTimer = window.setTimeout(() => setShouldLoadVideo(true), 1100);
-    return () => window.clearTimeout(loadTimer);
+    setShouldLoadVideo(true);
   }, []);
 
   return <main id="home" className="leo-hero relative h-screen w-full overflow-hidden bg-black font-geist">
     <img src={HERO_MOBILE_POSTER} alt="" aria-hidden="true" className={`leo-hero__poster${videoReady && !videoFailed ? " is-hidden" : ""}`} decoding="async" fetchPriority="high" />
-    {shouldLoadVideo && <video autoPlay muted loop playsInline preload={isMobileHero ? "none" : "metadata"} onLoadedData={() => setVideoReady(true)} onCanPlay={() => setVideoReady(true)} onError={() => setVideoFailed(true)} className={`leo-hero__video pointer-events-none absolute h-full w-full object-cover object-[70%_center]${videoReady && !videoFailed ? " is-ready" : ""}`} src={HERO_VIDEO_SRC} />}
+    {shouldLoadVideo && <video autoPlay muted loop playsInline preload={isMobileHero ? "auto" : "metadata"} onLoadedData={() => setVideoReady(true)} onCanPlay={() => setVideoReady(true)} onError={() => setVideoFailed(true)} className={`leo-hero__video pointer-events-none absolute h-full w-full object-cover object-[70%_center]${videoReady && !videoFailed ? " is-ready" : ""}`} src={HERO_VIDEO_SRC} />}
     <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/[.16] via-black/[.08] to-black/[.38]" aria-hidden="true" /><div className="leo-hero__readability" aria-hidden="true" />
     <SiteNavbar variant="hero" />
     <section className="leo-hero__content" aria-label={cn ? "李阳个人介绍" : "Leo personal introduction"}>

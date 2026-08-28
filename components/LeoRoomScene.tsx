@@ -324,20 +324,22 @@ function RoomLighting() {
 function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId }) {
   const controlsRef = useRef<CameraControlsImpl>(null);
   const { camera } = useThree();
-  const [isMobileOverview, setIsMobileOverview] = useState(false);
+  const [isMobileRoom, setIsMobileRoom] = useState(false);
   const preset = leoRoomCameraPresets[activePreset];
+  const isMobileOverview = activePreset === "overview" && isMobileRoom;
   const effectivePreset = useMemo(
-    () => activePreset === "overview" && isMobileOverview ? {
+    () => isMobileOverview ? {
       ...preset,
-      position: [-4.35, 7.4, 15.25] as [number, number, number],
-      target: [0, 1.1, -.45] as [number, number, number],
+      position: [-4.55, 7.7, 16.1] as [number, number, number],
+      target: [0, 1.06, -.35] as [number, number, number],
+      azimuth: [-1.08, .52] as [number, number],
     } : preset,
-    [activePreset, isMobileOverview, preset],
+    [isMobileOverview, preset],
   );
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsMobileOverview(mediaQuery.matches);
+    const update = () => setIsMobileRoom(mediaQuery.matches);
     update();
     mediaQuery.addEventListener("change", update);
     return () => mediaQuery.removeEventListener("change", update);
@@ -347,7 +349,7 @@ function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId })
     const controls = controlsRef.current;
     if (!controls) return;
     if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = activePreset === "overview" && isMobileOverview ? 52 : 48;
+      camera.fov = isMobileOverview ? 54 : 48;
       camera.updateProjectionMatrix();
     }
     void controls.setLookAt(
@@ -355,7 +357,11 @@ function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId })
       ...effectivePreset.target,
       true,
     );
-  }, [activePreset, camera, effectivePreset, isMobileOverview]);
+  }, [camera, effectivePreset, isMobileOverview]);
+
+  const rotateSpeed = isMobileRoom && activePreset !== "overview" ? 0 : .45;
+  const polarSpeed = isMobileRoom && activePreset !== "overview" ? 0 : .38;
+  const dollySpeed = isMobileRoom && activePreset !== "overview" ? 0 : .38;
 
   return (
     <CameraControls
@@ -367,11 +373,11 @@ function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId })
       maxDistance={18.5}
       minPolarAngle={.82}
       maxPolarAngle={1.54}
-      minAzimuthAngle={preset.azimuth[0]}
-      maxAzimuthAngle={preset.azimuth[1]}
-      azimuthRotateSpeed={.45}
-      polarRotateSpeed={.38}
-      dollySpeed={.38}
+      minAzimuthAngle={effectivePreset.azimuth[0]}
+      maxAzimuthAngle={effectivePreset.azimuth[1]}
+      azimuthRotateSpeed={rotateSpeed}
+      polarRotateSpeed={polarSpeed}
+      dollySpeed={dollySpeed}
       truckSpeed={0}
       dollyToCursor={false}
       infinityDolly={false}
