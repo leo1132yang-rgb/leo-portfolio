@@ -36,6 +36,8 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
   const [isPressingPage, setIsPressingPage] = useState(false);
   const page = childhoodStoryPages[pageIndex];
   const previousPage = previousPageIndex === null ? null : childhoodStoryPages[previousPageIndex];
+  const canGoPrev = pageIndex > 0;
+  const canGoNext = pageIndex < STORY_PAGE_COUNT - 1;
 
   useEffect(() => {
     if (!open) return;
@@ -82,10 +84,12 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
 
   const move = (nextDirection: PageDirection) => {
     if (isTransitioning) return;
+    if (nextDirection === -1 && !canGoPrev) return;
+    if (nextDirection === 1 && !canGoNext) return;
     setIsTransitioning(true);
     setDirection(nextDirection);
     setPreviousPageIndex(pageIndex);
-    setPageIndex((current) => (current + nextDirection + STORY_PAGE_COUNT) % STORY_PAGE_COUNT);
+    setPageIndex((current) => Math.min(Math.max(current + nextDirection, 0), STORY_PAGE_COUNT - 1));
     window.setTimeout(() => setIsTransitioning(false), PAGE_TRANSITION_MS);
   };
 
@@ -134,8 +138,8 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
           </div>
         </header>
 
-        <button type="button" className="childhood-reader__nav childhood-reader__nav--prev" onClick={() => move(-1)} aria-label="上一页">←</button>
-        <button type="button" className="childhood-reader__nav childhood-reader__nav--next" onClick={() => move(1)} aria-label="下一页">→</button>
+        <button type="button" className="childhood-reader__nav childhood-reader__nav--prev" onClick={() => move(-1)} disabled={!canGoPrev} aria-label="上一页"><span>← 上一页</span></button>
+        <button type="button" className="childhood-reader__nav childhood-reader__nav--next" onClick={() => move(1)} disabled={!canGoNext} aria-label="下一页"><span>下一页 →</span></button>
 
         <div
           className={`childhood-reader__page-wrap${isPressingPage ? " is-pressing" : ""}${previousPage ? " has-transition" : ""}`}
@@ -170,6 +174,7 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
               event.stopPropagation();
               move(-1);
             }}
+            disabled={!canGoPrev}
             aria-label="上一页"
           >
             <span>← <b>PREV</b></span>
@@ -181,6 +186,7 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
               event.stopPropagation();
               move(1);
             }}
+            disabled={!canGoNext}
             aria-label="下一页"
           >
             <span><b>NEXT</b> →</span>

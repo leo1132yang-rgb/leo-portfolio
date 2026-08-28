@@ -129,7 +129,7 @@ export function OtherSide() {
     setChildhoodViewState("overview");
     setPhotoLightboxId(null);
     setActivePreset("gallery");
-    setFocusedItem("gallery");
+    setFocusedItem(null);
     setGalleryViewState("focused");
   };
 
