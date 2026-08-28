@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage, type Language } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
@@ -115,6 +116,61 @@ function ProfileStageDetail({ stage, active, language, onSelect }: { stage: Stag
   </section>;
 }
 
+function MobileCareerTimeline({ language }: { language: Language }) {
+  const label = (value: Copy) => t(value, language);
+  const isCn = language === "cn";
+  const coreSkills = isCn
+    ? ["品牌运营", "视觉表达", "企业系统搭建", "AI 工作流", "活动策划", "内容协调", "摄影与视频"]
+    : ["Brand Operations", "Visual Expression", "Enterprise Systems", "AI Workflows", "Event Planning", "Content Coordination", "Photo & Video"];
+
+  return (
+    <section className="profile-mobile" aria-label={isCn ? "移动端个人履历" : "Mobile career timeline"}>
+      <header className="profile-mobile__hero">
+        <p>{isCn ? "个人履历" : "PROFILE"}</p>
+        <h1>{isCn ? "个人履历" : "Profile"}</h1>
+        <span>{isCn ? "品牌运营 × 系统搭建 × AI 工作流 × 活动执行" : "Brand Ops × Systems × AI Workflow × Event Delivery"}</span>
+      </header>
+
+      <div className="profile-mobile__timeline">
+        {stages.map((stage, index) => {
+          const isCurrent = index === stages.length - 1;
+          const responsibilities = stage.groups.flatMap((group) => group.items).slice(0, isCurrent ? 5 : 4);
+          const highlights = stage.keywords.slice(0, isCurrent ? 5 : 4);
+
+          return (
+            <article className={`profile-mobile__stage${isCurrent ? " is-current" : ""}`} key={stage.id}>
+              <div className="profile-mobile__stage-index">
+                <small>{stage.id}</small>
+                {isCurrent && <b>CURRENT</b>}
+              </div>
+              <p className="profile-mobile__date">{label(stage.date)}</p>
+              <h2>{label(stage.title)}</h2>
+              <p className="profile-mobile__summary">{label(stage.summary)}</p>
+              <ul>
+                {responsibilities.map((item) => <li key={`${stage.id}-${item.cn}`}>{label(item)}</li>)}
+              </ul>
+              <div className="profile-mobile__keywords">
+                {highlights.map((keyword) => <span key={`${stage.id}-${keyword.cn}`}>{label(keyword)}</span>)}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <section className="profile-mobile__skills">
+        <p>{isCn ? "核心能力" : "CORE SKILLS"}</p>
+        <div>
+          {coreSkills.map((skill) => <span key={skill}>{skill}</span>)}
+        </div>
+      </section>
+
+      <Link className="profile-mobile__cta" href="/projects">
+        {isCn ? "查看项目作品" : "Explore Projects"} <span>→</span>
+      </Link>
+    </section>
+  );
+}
+
 export function CareerProfile() {
   const { language } = useLanguage();
   const [active, setActive] = useState(0);
@@ -132,6 +188,7 @@ export function CareerProfile() {
       <div><h1>{language === "cn" ? "个人履历" : "Career Profile"} <i>•</i></h1><p>{language === "cn" ? "我的成长路径：每一步探索、构建系统与能力" : "A record of exploration, systems and capability."}</p></div>
     </div>
     <main className="profile-archive__main">
+      <MobileCareerTimeline language={language} />
       <div className="profile-archive__workspace">
         <section className="profile-archive__timeline" aria-label={language === "cn" ? "履历阶段" : "Career stages"}>{stages.map((item, index) => <button type="button" key={item.id} onClick={() => select(index)} className={index === active ? "is-active" : ""} aria-current={index === active ? "step" : undefined}><span>{item.id}</span><div><small>{label(item.date)}</small><strong>{label(item.title)}</strong><em>{label(item.summary)}</em></div><i>→</i></button>)}</section>
         <ProfileStageDetail stage={stage} active={active} language={language} onSelect={select} />
