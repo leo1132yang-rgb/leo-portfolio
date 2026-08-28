@@ -16,7 +16,7 @@ const childhoodStoryPages = Array.from({ length: STORY_PAGE_COUNT }, (_, index) 
   const number = String(index + 1).padStart(2, "0");
   return {
     id: number,
-    src: `/room/childhood-story/${number}.png`,
+    src: `/room/childhood-story/web/${number}.webp`,
   };
 });
 

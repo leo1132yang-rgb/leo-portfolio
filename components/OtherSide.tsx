@@ -1,16 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useGlobalAudio } from "@/hooks/useGlobalAudio";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
-import { LeoRoomScene } from "@/components/LeoRoomScene";
-import { ChildhoodReadingOverlay } from "@/components/leo-room/ChildhoodReadingOverlay";
-import { PhotoLightbox } from "@/components/leo-room/PhotoLightbox";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import { leoRoomPresetLabels, type LeoRoomFocusId, type LeoRoomPresetId } from "@/data/leoRoomCamera";
 import { photoWallImages } from "@/data/photoWall";
+
+const LeoRoomScene = dynamic(() => import("@/components/LeoRoomScene").then((mod) => mod.LeoRoomScene), {
+  ssr: false,
+  loading: () => <div className="leo-room__loading">ENTERING ROOM...</div>,
+});
+
+const ChildhoodReadingOverlay = dynamic(() => import("@/components/leo-room/ChildhoodReadingOverlay").then((mod) => mod.ChildhoodReadingOverlay), {
+  ssr: false,
+});
+
+const PhotoLightbox = dynamic(() => import("@/components/leo-room/PhotoLightbox").then((mod) => mod.PhotoLightbox), {
+  ssr: false,
+});
 
 const focusContent = {
   gallery: {
@@ -54,6 +65,8 @@ export function OtherSide() {
   const [galleryViewState, setGalleryViewState] = useState<GalleryViewState>("overview");
   const [activeStoryId, setActiveStoryId] = useState<ChildhoodStoryId>("01");
   const [photoLightboxId, setPhotoLightboxId] = useState<string | null>(null);
+  const [childhoodOverlayLoaded, setChildhoodOverlayLoaded] = useState(false);
+  const [photoLightboxLoaded, setPhotoLightboxLoaded] = useState(false);
   const readingTimer = useRef<number | null>(null);
   const escapeKeyDownHandled = useRef(false);
 
@@ -67,6 +80,14 @@ export function OtherSide() {
   useEffect(() => {
     switchTrack(readingOpen ? "childhood" : "room");
   }, [readingOpen, switchTrack]);
+
+  useEffect(() => {
+    if (readingOpen) setChildhoodOverlayLoaded(true);
+  }, [readingOpen]);
+
+  useEffect(() => {
+    if (photoLightboxId) setPhotoLightboxLoaded(true);
+  }, [photoLightboxId]);
 
   const openChildhoodReader = (id: ChildhoodStoryId) => {
     clearReadingTimer();
@@ -256,23 +277,33 @@ export function OtherSide() {
         </aside>
       )}
 
-      <ChildhoodReadingOverlay
-        open={readingOpen}
-        activeId={activeStoryId}
-        onClose={closeChildhoodReader}
-      />
+      {childhoodOverlayLoaded && (
+        <ChildhoodReadingOverlay
+          open={readingOpen}
+          activeId={activeStoryId}
+          onClose={closeChildhoodReader}
+        />
+      )}
 
-      <PhotoLightbox
-        photos={photoWallImages}
-        selectedId={photoLightboxId}
-        onSelect={setPhotoLightboxId}
-        onClose={closePhotoLightbox}
-      />
+      {photoLightboxLoaded && (
+        <PhotoLightbox
+          photos={photoWallImages}
+          selectedId={photoLightboxId}
+          onSelect={setPhotoLightboxId}
+          onClose={closePhotoLightbox}
+        />
+      )}
 
       {childhoodViewState === "focused" && !readingOpen && (
         <div className="leo-room__childhood-hint">
           <span>CLICK AGAIN TO ENTER</span>
           <b>{cn ? "再次点击进入故事" : "Enter the story"}</b>
+        </div>
+      )}
+
+      {galleryViewState === "focused" && !photoLightboxId && (
+        <div className="leo-room__gallery-hint">
+          {cn ? "点击照片，查看我的故事" : "Tap a photo to read the story"}
         </div>
       )}
 

@@ -51,7 +51,7 @@ export function PhotoLightbox({ photos, selectedId, onSelect, onClose }: PhotoLi
     >
       <button type="button" className="photo-wall-lightbox__close" onClick={onClose} aria-label="关闭预览">×</button>
       <section className="photo-wall-lightbox__image" aria-label="当前照片">
-        <img key={photo.id} src={photo.src} alt={photo.title} />
+        <img key={photo.id} src={photo.previewSrc} alt={photo.title} />
       </section>
       <aside className="photo-wall-lightbox__meta">
         <p className="photo-wall-lightbox__count">{String(photo.index).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}</p>
