@@ -60,7 +60,7 @@ export function SiteNavbar({ variant = "default" }: { variant?: "default" | "her
     <header className={`site-nav ${variant === "hero" ? "site-nav--hero" : ""} ${visible ? "is-visible" : "is-hidden"} ${scrolled ? "is-scrolled" : ""}`}>
       <Link href="/" className="site-nav__brand">LEO <span>/ 李阳</span></Link>
       <nav className="site-nav__links" aria-label={cn ? "主导航" : "Main navigation"}>{links.map((item) => <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} className={isActive(item.href) ? "is-active" : ""}>{cn ? item.cn : item.en}</Link>)}</nav>
-      <div className="site-nav__actions"><LanguageSwitch /><a href="mailto:leoyang1132@outlook.com">{cn ? "联系我" : "Contact"}</a><button type="button" aria-label="Open navigation" onClick={() => setOpen(true)} className="site-nav__menu">≡</button></div>
+      <div className="site-nav__actions"><LanguageSwitch /><a href="mailto:leoyang1132@outlook.com">{cn ? "联系我" : "Contact"}</a><button type="button" aria-label={cn ? "打开导航" : "Open navigation"} onClick={() => setOpen(true)} className="site-nav__menu"><span className="site-nav__menu-label">{cn ? "菜单" : "MENU"}</span><span aria-hidden="true">≡</span></button></div>
     </header>
     <div className={`site-nav__mobile ${open ? "is-open" : ""}`}><button type="button" onClick={() => setOpen(false)} aria-label="Close navigation">×</button><nav>{links.map((item) => <Link key={item.href} href={item.href} onClick={() => setOpen(false)} aria-current={isActive(item.href) ? "page" : undefined}>{cn ? item.cn : item.en}</Link>)}<a href="mailto:leoyang1132@outlook.com" onClick={() => setOpen(false)}>{cn ? "联系我" : "Contact"}</a></nav></div>
   </>;
