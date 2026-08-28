@@ -3859,3 +3859,27 @@ body:has(.childhood-reader--story.is-open) .sound-toggle,body:has(.photo-wall-li
   .childhood-reader__story-page,.childhood-reader__story-page .childhood-reader__story-image{max-width:94vw;max-height:min(74dvh,calc(100dvh - 172px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}
 }
 @media(min-width:761px){.leo-hero__poster{display:none}.leo-hero__video{opacity:1}}
+
+/* Mobile explore menu refinement — immersive directory, still scoped to mobile only. */
+@media(max-width:760px){
+  .site-nav__mobile{display:block;background:rgba(5,8,14,.78);backdrop-filter:blur(10px) saturate(.88);-webkit-backdrop-filter:blur(10px) saturate(.88);transition:opacity 300ms cubic-bezier(.22,1,.36,1),transform 320ms cubic-bezier(.22,1,.36,1)}
+  .site-nav__mobile::before{position:absolute;inset:0;z-index:-1;background:radial-gradient(circle at 18% 12%,rgba(79,227,255,.09),transparent 31%),radial-gradient(circle at 82% 79%,rgba(200,154,82,.11),transparent 32%),linear-gradient(180deg,rgba(3,7,12,.22),rgba(3,6,10,.66));content:"";pointer-events:none}
+  .site-nav__mobile-head{display:flex;align-items:center;justify-content:space-between;color:rgba(238,229,211,.64)}
+  .site-nav__mobile-head p{margin:0;color:rgba(200,154,82,.72);font:500 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.2em;text-transform:uppercase}
+  .site-nav__mobile-head>button{display:grid;place-items:center;width:46px;height:46px;border:1px solid rgba(238,229,211,.14);border-radius:50%;background:rgba(255,255,255,.035);color:rgba(246,241,232,.82);font-size:25px;line-height:1}
+  .site-nav__mobile>button{display:none}
+  .site-nav__mobile nav{height:calc(100dvh - 106px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding-top:4vh;gap:8px}
+  .site-nav__mobile nav a{position:relative;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:12px;min-height:58px;padding:0 2px;border-bottom:1px solid rgba(238,229,211,.075);color:rgba(244,239,229,.62);font-family:Georgia,"Noto Serif SC","Songti SC",serif;font-size:clamp(25px,7.8vw,38px);font-weight:400;letter-spacing:.03em;line-height:1.05;opacity:.68;transform:translateY(12px);transition:opacity 260ms ease,color 260ms ease,transform 320ms cubic-bezier(.22,1,.36,1)}
+  .site-nav__mobile nav a small{color:rgba(200,154,82,.44);font:10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.12em}
+  .site-nav__mobile nav a span{min-width:0}
+  .site-nav__mobile nav a b{align-self:center;padding:5px 8px;border:1px solid rgba(200,154,82,.28);border-radius:999px;color:rgba(230,198,143,.82);font:8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em}
+  .site-nav__mobile nav a.is-active,.site-nav__mobile nav a[aria-current="page"]{color:#fff5df;opacity:1;font-size:clamp(28px,8.5vw,42px)}
+  .site-nav__mobile nav a.is-active::before,.site-nav__mobile nav a[aria-current="page"]::before{position:absolute;left:-10px;width:5px;height:5px;border-radius:50%;background:#c89a52;box-shadow:0 0 12px rgba(200,154,82,.32);content:""}
+  .site-nav__mobile.is-open nav a{opacity:.68;transform:translateY(0)}
+  .site-nav__mobile.is-open nav a.is-active,.site-nav__mobile.is-open nav a[aria-current="page"]{opacity:1}
+  .site-nav__mobile.is-open nav a:nth-child(1){transition-delay:40ms}
+  .site-nav__mobile.is-open nav a:nth-child(2){transition-delay:70ms}
+  .site-nav__mobile.is-open nav a:nth-child(3){transition-delay:100ms}
+  .site-nav__mobile.is-open nav a:nth-child(4){transition-delay:130ms}
+  .site-nav__mobile.is-open nav a:nth-child(5){transition-delay:160ms}
+}

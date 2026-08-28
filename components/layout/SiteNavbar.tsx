@@ -60,8 +60,17 @@ export function SiteNavbar({ variant = "default" }: { variant?: "default" | "her
     <header className={`site-nav ${variant === "hero" ? "site-nav--hero" : ""} ${visible ? "is-visible" : "is-hidden"} ${scrolled ? "is-scrolled" : ""}`}>
       <Link href="/" className="site-nav__brand">LEO <span>/ 李阳</span></Link>
       <nav className="site-nav__links" aria-label={cn ? "主导航" : "Main navigation"}>{links.map((item) => <Link key={item.href} href={item.href} aria-current={isActive(item.href) ? "page" : undefined} className={isActive(item.href) ? "is-active" : ""}>{cn ? item.cn : item.en}</Link>)}</nav>
-      <div className="site-nav__actions"><LanguageSwitch /><a href="mailto:leoyang1132@outlook.com">{cn ? "联系我" : "Contact"}</a><button type="button" aria-label={cn ? "打开导航" : "Open navigation"} onClick={() => setOpen(true)} className="site-nav__menu"><span className="site-nav__menu-label">{cn ? "菜单" : "MENU"}</span><span aria-hidden="true">≡</span></button></div>
+      <div className="site-nav__actions"><LanguageSwitch /><a href="mailto:leoyang1132@outlook.com">{cn ? "联系我" : "Contact"}</a><button type="button" aria-label={cn ? "打开探索导航" : "Open explore navigation"} onClick={() => setOpen(true)} className="site-nav__menu"><span className="site-nav__menu-label">{cn ? "探索" : "Explore"}</span><span aria-hidden="true">≡</span></button></div>
     </header>
-    <div className={`site-nav__mobile ${open ? "is-open" : ""}`}><button type="button" onClick={() => setOpen(false)} aria-label="Close navigation">×</button><nav>{links.map((item) => <Link key={item.href} href={item.href} onClick={() => setOpen(false)} aria-current={isActive(item.href) ? "page" : undefined}>{cn ? item.cn : item.en}</Link>)}<a href="mailto:leoyang1132@outlook.com" onClick={() => setOpen(false)}>{cn ? "联系我" : "Contact"}</a></nav></div>
+    <div className={`site-nav__mobile ${open ? "is-open" : ""}`}>
+      <div className="site-nav__mobile-head">
+        <p>{cn ? "探索目录" : "Explore Index"}</p>
+        <button type="button" onClick={() => setOpen(false)} aria-label={cn ? "关闭导航" : "Close navigation"}>×</button>
+      </div>
+      <nav>{links.map((item, index) => {
+        const active = isActive(item.href);
+        return <Link key={item.href} href={item.href} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined} className={active ? "is-active" : ""}><small>{String(index + 1).padStart(2, "0")}</small><span>{cn ? item.cn : item.en}</span>{active && <b>{cn ? "当前" : "NOW"}</b>}</Link>;
+      })}<a href="mailto:leoyang1132@outlook.com" onClick={() => setOpen(false)}><small>05</small><span>{cn ? "联系我" : "Contact"}</span></a></nav>
+    </div>
   </>;
 }

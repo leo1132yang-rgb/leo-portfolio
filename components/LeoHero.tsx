@@ -20,7 +20,7 @@ const tools = [
 ];
 
 const HERO_VIDEO_SRC = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_204221_5339e40b-e73d-4ab0-9c65-79c18c66fd50.mp4";
-const HERO_MOBILE_POSTER = "/images/leo-home-portrait.png";
+const HERO_MOBILE_POSTER = "/images/hero-poster.webp";
 
 export function LeoHero() {
   const { language } = useLanguage(); const cn = language === "cn";
