@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage, type Language } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
+import { mobileProfileSkills, mobileProfileTimeline, type MobileProfileTimelineItem } from "@/data/mobileProfileTimeline";
 
 type Copy = { cn: string; en: string };
 type Group = { title: Copy; items: Copy[] };
@@ -117,41 +118,53 @@ function ProfileStageDetail({ stage, active, language, onSelect }: { stage: Stag
 }
 
 function MobileCareerTimeline({ language }: { language: Language }) {
-  const label = (value: Copy) => t(value, language);
+  const label = (value: Copy | MobileProfileTimelineItem["title"]) => value[language];
   const isCn = language === "cn";
-  const coreSkills = isCn
-    ? ["品牌运营", "视觉表达", "企业系统搭建", "AI 工作流", "活动策划", "内容协调", "摄影与视频"]
-    : ["Brand Operations", "Visual Expression", "Enterprise Systems", "AI Workflows", "Event Planning", "Content Coordination", "Photo & Video"];
+  const coreSkills = mobileProfileSkills[language];
 
   return (
     <section className="profile-mobile" aria-label={isCn ? "移动端个人履历" : "Mobile career timeline"}>
       <header className="profile-mobile__hero">
-        <p>{isCn ? "个人履历" : "PROFILE"}</p>
-        <h1>{isCn ? "个人履历" : "Profile"}</h1>
-        <span>{isCn ? "品牌运营 × 系统搭建 × AI 工作流 × 活动执行" : "Brand Ops × Systems × AI Workflow × Event Delivery"}</span>
+        <p>{isCn ? "个人履历" : "MY PATH"}</p>
+        <h1>{isCn ? "个人履历" : "My Path"}</h1>
+        <span>{isCn ? "从影像开始，到系统与运营。" : "From images to systems and operations."}</span>
       </header>
 
       <div className="profile-mobile__timeline">
-        {stages.map((stage, index) => {
-          const isCurrent = index === stages.length - 1;
-          const responsibilities = stage.groups.flatMap((group) => group.items).slice(0, isCurrent ? 5 : 4);
-          const highlights = stage.keywords.slice(0, isCurrent ? 5 : 4);
+        {mobileProfileTimeline.map((stage) => {
+          const isCurrent = Boolean(stage.current);
 
           return (
             <article className={`profile-mobile__stage${isCurrent ? " is-current" : ""}`} key={stage.id}>
               <div className="profile-mobile__stage-index">
                 <small>{stage.id}</small>
-                {isCurrent && <b>CURRENT</b>}
+                <span>{isCurrent ? "NOW / CURRENT" : label(stage.keyword).toUpperCase()}</span>
               </div>
-              <p className="profile-mobile__date">{label(stage.date)}</p>
+              <p className="profile-mobile__date">{label(stage.time)}</p>
               <h2>{label(stage.title)}</h2>
-              <p className="profile-mobile__summary">{label(stage.summary)}</p>
+              <h3>{label(stage.summary)}</h3>
+              <p className="profile-mobile__body">{label(stage.body)}</p>
+
+              {stage.images.length > 0 && (
+                <div className={`profile-mobile__media profile-mobile__media--${stage.images.length}`}>
+                  {stage.images.map((image) => (
+                    <img
+                      key={image.src}
+                      src={image.src}
+                      alt={label(image.alt)}
+                      loading="lazy"
+                      decoding="async"
+                      className={image.variant === "wide" ? "is-wide" : ""}
+                    />
+                  ))}
+                </div>
+              )}
+
               <ul>
-                {responsibilities.map((item) => <li key={`${stage.id}-${item.cn}`}>{label(item)}</li>)}
+                {stage.duties.map((item) => <li key={`${stage.id}-${item.cn}`}>{label(item)}</li>)}
               </ul>
-              <div className="profile-mobile__keywords">
-                {highlights.map((keyword) => <span key={`${stage.id}-${keyword.cn}`}>{label(keyword)}</span>)}
-              </div>
+              <blockquote>{label(stage.reflection)}</blockquote>
+              {stage.links && stage.links.length > 0 && <div className="profile-mobile__links">{stage.links.map((link) => <Link href={link.href} key={link.href}>{label(link.label)}</Link>)}</div>}
             </article>
           );
         })}
@@ -164,9 +177,15 @@ function MobileCareerTimeline({ language }: { language: Language }) {
         </div>
       </section>
 
-      <Link className="profile-mobile__cta" href="/projects">
-        {isCn ? "查看项目作品" : "Explore Projects"} <span>→</span>
-      </Link>
+      <section className="profile-mobile__now">
+        <p>{isCn ? "现在的我" : "NOW"}</p>
+        <h2>{isCn ? "我现在更关注的，不只是视觉是否好看，而是一个系统是否真的能被团队使用、持续运行，并产生结果。" : "I now care not only whether visuals look good, but whether a system can be used by a team, keep running and create results."}</h2>
+        <div>
+          <Link href="/projects">{isCn ? "查看项目作品" : "Explore Projects"} <span>→</span></Link>
+          <Link href="/other-side">{isCn ? "进入 Leo’s Room" : "Enter Leo’s Room"} <span>→</span></Link>
+          <a href="mailto:leoyang1132@outlook.com">{isCn ? "联系我" : "Contact Me"} <span>→</span></a>
+        </div>
+      </section>
     </section>
   );
 }
