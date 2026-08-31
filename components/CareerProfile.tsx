@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useLanguage, type Language } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { mobileProfileSkills, mobileProfileTimeline, type MobileProfileTimelineItem } from "@/data/mobileProfileTimeline";
@@ -121,6 +122,31 @@ function MobileCareerTimeline({ language }: { language: Language }) {
   const label = (value: Copy | MobileProfileTimelineItem["title"]) => value[language];
   const isCn = language === "cn";
   const coreSkills = mobileProfileSkills[language];
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const stageRefs = useRef<Array<HTMLElement | null>>([]);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const { scrollY, scrollYProgress } = useScroll({
+    target: timelineRef,
+    offset: ["start 68%", "end 72%"],
+  });
+  const progressScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  useMotionValueEvent(scrollY, "change", () => {
+    if (typeof window === "undefined") return;
+    const markerY = window.innerHeight * .42;
+    let nextActive = 0;
+    let closest = Number.POSITIVE_INFINITY;
+    stageRefs.current.forEach((node, index) => {
+      if (!node) return;
+      const rect = node.getBoundingClientRect();
+      const distance = Math.abs(rect.top + rect.height * .28 - markerY);
+      if (distance < closest) {
+        closest = distance;
+        nextActive = index;
+      }
+    });
+    setActiveIndex((current) => current === nextActive ? current : nextActive);
+  });
 
   return (
     <section className="profile-mobile" aria-label={isCn ? "移动端个人履历" : "Mobile career timeline"}>
@@ -130,12 +156,39 @@ function MobileCareerTimeline({ language }: { language: Language }) {
         <span>{isCn ? "从影像开始，到系统与运营。" : "From images to systems and operations."}</span>
       </header>
 
-      <div className="profile-mobile__timeline">
-        {mobileProfileTimeline.map((stage) => {
+      <div className="profile-mobile__timeline" ref={timelineRef}>
+        <aside className="profile-mobile__rail" aria-hidden="true">
+          <div className="profile-mobile__rail-track"><motion.i style={{ scaleY: progressScale }} /></div>
+          <div className="profile-mobile__sticky-time">
+            <small>{mobileProfileTimeline[activeIndex]?.id}</small>
+            <b>{label(mobileProfileTimeline[activeIndex]?.time ?? mobileProfileTimeline[0].time)}</b>
+          </div>
+          <ol>
+            {mobileProfileTimeline.map((stage, index) => (
+              <li key={stage.id} className={index === activeIndex ? "is-active" : index < activeIndex ? "is-past" : ""}>
+                <span>{stage.current ? "NOW" : stage.time.cn.slice(0, 4)}</span>
+              </li>
+            ))}
+          </ol>
+        </aside>
+
+        <div className="profile-mobile__stage-stack">
+        {mobileProfileTimeline.map((stage, index) => {
           const isCurrent = Boolean(stage.current);
+          const phase = index === activeIndex ? " is-active" : index < activeIndex ? " is-past" : " is-future";
 
           return (
-            <article className={`profile-mobile__stage${isCurrent ? " is-current" : ""}`} key={stage.id}>
+            <Fragment key={stage.id}>
+            <motion.article
+              ref={(node) => { stageRefs.current[index] = node; }}
+              className={`profile-mobile__stage${isCurrent ? " is-current" : ""}${phase}`}
+              animate={{
+                opacity: index === activeIndex ? 1 : index < activeIndex ? .58 : .74,
+                y: index === activeIndex ? 0 : 10,
+                scale: index === activeIndex ? 1 : .99,
+              }}
+              transition={{ duration: .34, ease: [0.22, 1, 0.36, 1] }}
+            >
               <div className="profile-mobile__stage-index">
                 <small>{stage.id}</small>
                 <span>{isCurrent ? "NOW / CURRENT" : label(stage.keyword).toUpperCase()}</span>
@@ -164,11 +217,28 @@ function MobileCareerTimeline({ language }: { language: Language }) {
                 {stage.duties.map((item) => <li key={`${stage.id}-${item.cn}`}>{label(item)}</li>)}
               </ul>
               <blockquote>{label(stage.reflection)}</blockquote>
-              {stage.links && stage.links.length > 0 && <div className="profile-mobile__links">{stage.links.map((link) => <Link href={link.href} key={link.href}>{label(link.label)}</Link>)}</div>}
-            </article>
+              <div className="profile-mobile__signals">{stage.signals.map((signal, signalIndex) => <i key={signal} style={{ transitionDelay: `${signalIndex * 70}ms` }}>{signal}</i>)}</div>
+            </motion.article>
+            {stage.transitionAfter && (
+              <p className={`profile-mobile__transition${index < activeIndex ? " is-past" : ""}`}>
+                {label(stage.transitionAfter)}
+              </p>
+            )}
+            </Fragment>
           );
         })}
+        </div>
       </div>
+
+      <section className="profile-mobile__shift">
+        <p>THE SHIFT</p>
+        <h2>{isCn ? "我的能力是怎么变化的" : "How the ability shifted"}</h2>
+        <div>
+          {(isCn ? ["观察", "视觉", "叙事", "品牌", "执行", "运营", "系统", "AI"] : ["Observation", "Visual", "Narrative", "Brand", "Execution", "Operations", "System", "AI"]).map((item, index, array) => (
+            <span key={item}>{item}{index < array.length - 1 && <b>↓</b>}</span>
+          ))}
+        </div>
+      </section>
 
       <section className="profile-mobile__skills">
         <p>{isCn ? "核心能力" : "CORE SKILLS"}</p>
@@ -178,8 +248,8 @@ function MobileCareerTimeline({ language }: { language: Language }) {
       </section>
 
       <section className="profile-mobile__now">
-        <p>{isCn ? "现在的我" : "NOW"}</p>
-        <h2>{isCn ? "我现在更关注的，不只是视觉是否好看，而是一个系统是否真的能被团队使用、持续运行，并产生结果。" : "I now care not only whether visuals look good, but whether a system can be used by a team, keep running and create results."}</h2>
+        <p>{isCn ? "现在的我" : "WHO I AM NOW"}</p>
+        <h2>{isCn ? "我现在更关注的，不只是视觉是否好看，而是一个系统是否真的能被团队使用、持续运行，并产生结果。但我依然保留着最开始学摄影时的习惯：先观察，再动手。" : "I now care not only whether visuals look good, but whether a system can be used by a team, keep running and create results. But I still keep the habit I learned at the beginning of photography: observe first, then act."}</h2>
         <div>
           <Link href="/projects">{isCn ? "查看项目作品" : "Explore Projects"} <span>→</span></Link>
           <Link href="/other-side">{isCn ? "进入 Leo’s Room" : "Enter Leo’s Room"} <span>→</span></Link>
