@@ -5,7 +5,6 @@ import { Html, OrbitControls, Stars } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AdditiveBlending,
-  BufferAttribute,
   CanvasTexture,
   Color,
   Group,
@@ -66,14 +65,39 @@ function makeGlobeTexture(color: string, polygonColor: string) {
   canvas.width = 1600;
   canvas.height = 800;
   const context = canvas.getContext("2d")!;
-  const base = context.createLinearGradient(0, 0, 0, canvas.height);
-  base.addColorStop(0, color);
-  base.addColorStop(.52, "#08151c");
-  base.addColorStop(1, "#03070d");
+
+  const mapPoint = ([lng, lat]: [number, number]) => [((lng + 180) / 360) * canvas.width, ((90 - lat) / 180) * canvas.height];
+  const seeded = (index: number) => {
+    const value = Math.sin(index * 127.1 + 311.7) * 43758.5453123;
+    return value - Math.floor(value);
+  };
+
+  const base = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+  base.addColorStop(0, "#153f5d");
+  base.addColorStop(.28, color);
+  base.addColorStop(.62, "#071b2b");
+  base.addColorStop(1, "#02070d");
   context.fillStyle = base;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  const mapPoint = ([lng, lat]: [number, number]) => [((lng + 180) / 360) * canvas.width, ((90 - lat) / 180) * canvas.height];
+  const oceanGlow = context.createRadialGradient(canvas.width * .38, canvas.height * .38, 0, canvas.width * .5, canvas.height * .5, canvas.width * .72);
+  oceanGlow.addColorStop(0, "rgba(72, 138, 166, .26)");
+  oceanGlow.addColorStop(.42, "rgba(26, 73, 101, .14)");
+  oceanGlow.addColorStop(1, "rgba(2, 7, 13, 0)");
+  context.fillStyle = oceanGlow;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < 1150; i += 1) {
+    const x = seeded(i) * canvas.width;
+    const y = seeded(i + 42) * canvas.height;
+    const radius = .35 + seeded(i + 77) * 1.6;
+    const alpha = .018 + seeded(i + 93) * .04;
+    context.fillStyle = `rgba(155, 205, 217, ${alpha})`;
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fill();
+  }
+
   const continents: Array<Array<[number, number]>> = [
     [[-168,72],[-140,68],[-124,52],[-130,35],[-112,22],[-97,15],[-82,25],[-67,45],[-60,58],[-82,72],[-120,75]],
     [[-81,12],[-70,4],[-64,-16],[-55,-33],[-68,-55],[-78,-38],[-81,-8]],
@@ -91,14 +115,54 @@ function makeGlobeTexture(color: string, polygonColor: string) {
       else context.lineTo(x, y);
     });
     context.closePath();
-    context.fillStyle = polygonColor;
+    context.shadowColor = "rgba(228, 209, 161, .13)";
+    context.shadowBlur = 16;
+    context.fillStyle = "rgba(93, 111, 92, .72)";
     context.fill();
-    context.strokeStyle = "rgba(228,209,161,.16)";
-    context.lineWidth = 1.2;
+    context.shadowBlur = 0;
+    context.fillStyle = polygonColor;
+    context.globalAlpha = .28;
+    context.fill();
+    context.globalAlpha = 1;
+    context.strokeStyle = "rgba(228,209,161,.24)";
+    context.lineWidth = 1.35;
     context.stroke();
   });
 
-  context.strokeStyle = "rgba(255,255,255,.035)";
+  for (let i = 0; i < 520; i += 1) {
+    const lng = seeded(i + 200) * 360 - 180;
+    const lat = seeded(i + 380) * 118 - 59;
+    const [x, y] = mapPoint([lng, lat]);
+    const warm = seeded(i + 500) > .58;
+    context.fillStyle = warm ? "rgba(228, 209, 161, .075)" : "rgba(126, 190, 207, .055)";
+    context.fillRect(x, y, .8 + seeded(i + 610) * 1.2, .8 + seeded(i + 720) * 1.2);
+  }
+
+  const cityLights: Array<[number, number, number]> = [
+    [114.1694, 22.3193, 1],
+    [121.4737, 31.2304, .78],
+    [121.5654, 25.033, .68],
+    [126.978, 37.5665, .72],
+    [100.5018, 13.7563, .56],
+    [103.8198, 1.3521, .48],
+    [73.2207, 3.2028, .42],
+    [113.2644, 23.1291, .55],
+    [113.5439, 22.1987, .52],
+  ];
+
+  cityLights.forEach(([lng, lat, power]) => {
+    const [x, y] = mapPoint([lng, lat]);
+    const glow = context.createRadialGradient(x, y, 0, x, y, 12 * power);
+    glow.addColorStop(0, `rgba(244, 222, 166, ${.62 * power})`);
+    glow.addColorStop(.35, `rgba(200, 154, 82, ${.2 * power})`);
+    glow.addColorStop(1, "rgba(200, 154, 82, 0)");
+    context.fillStyle = glow;
+    context.beginPath();
+    context.arc(x, y, 12 * power, 0, Math.PI * 2);
+    context.fill();
+  });
+
+  context.strokeStyle = "rgba(211,231,236,.045)";
   context.lineWidth = 1;
   for (let lng = -180; lng <= 180; lng += 20) {
     const x = ((lng + 180) / 360) * canvas.width;
@@ -114,6 +178,13 @@ function makeGlobeTexture(color: string, polygonColor: string) {
     context.lineTo(canvas.width, y);
     context.stroke();
   }
+
+  const vignette = context.createRadialGradient(canvas.width * .5, canvas.height * .48, canvas.width * .16, canvas.width * .5, canvas.height * .5, canvas.width * .62);
+  vignette.addColorStop(0, "rgba(255,255,255,0)");
+  vignette.addColorStop(.64, "rgba(0,0,0,.03)");
+  vignette.addColorStop(1, "rgba(0,0,0,.24)");
+  context.fillStyle = vignette;
+  context.fillRect(0, 0, canvas.width, canvas.height);
 
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
@@ -233,17 +304,23 @@ function WorldScene({ data, globeConfig, places = [], selectedId, language = "cn
           <sphereGeometry args={[RADIUS, 96, 96]} />
           <meshPhongMaterial
             map={texture}
-            color={globeConfig.globeColor ?? "#07131f"}
+            color="#f2f7f2"
             emissive={globeConfig.emissive ?? "#07131f"}
-            emissiveIntensity={globeConfig.emissiveIntensity ?? .1}
+            emissiveIntensity={globeConfig.emissiveIntensity ?? .14}
             shininess={(globeConfig.shininess ?? .82) * 28}
           />
         </mesh>
         {globeConfig.showAtmosphere && (
-          <mesh scale={1 + (globeConfig.atmosphereAltitude ?? .1)}>
-            <sphereGeometry args={[RADIUS, 72, 72]} />
-            <meshBasicMaterial color={globeConfig.atmosphereColor ?? "#fff7e8"} transparent opacity={.055} blending={AdditiveBlending} depthWrite={false} />
-          </mesh>
+          <>
+            <mesh scale={1 + (globeConfig.atmosphereAltitude ?? .1)}>
+              <sphereGeometry args={[RADIUS, 72, 72]} />
+              <meshBasicMaterial color={globeConfig.atmosphereColor ?? "#fff7e8"} transparent opacity={.065} blending={AdditiveBlending} depthWrite={false} />
+            </mesh>
+            <mesh scale={1.18}>
+              <sphereGeometry args={[RADIUS, 72, 72]} />
+              <meshBasicMaterial color="#6ea6b8" transparent opacity={.028} blending={AdditiveBlending} depthWrite={false} />
+            </mesh>
+          </>
         )}
         {data.map((arc, index) => <ArcLine key={`${arc.order}-${index}-${arc.endLat}-${arc.endLng}`} arc={arc} />)}
         {places.map((place) => (
