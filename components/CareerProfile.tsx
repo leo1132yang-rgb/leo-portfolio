@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence, motion, type MotionValue, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useLanguage, type Language } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
@@ -122,12 +122,18 @@ function MobileCareerTimeline({ language }: { language: Language }) {
   const label = (value: Copy | MobileProfileTimelineItem["title"]) => value[language];
   const isCn = language === "cn";
   const coreSkills = mobileProfileSkills[language];
+  const shiftWords = isCn ? ["观察", "视觉", "叙事", "品牌", "执行", "运营", "系统", "AI"] : ["Observation", "Visual", "Narrative", "Brand", "Execution", "Operations", "System", "AI"];
   const timelineRef = useRef<HTMLDivElement>(null);
+  const shiftRef = useRef<HTMLElement>(null);
   const stageRefs = useRef<Array<HTMLElement | null>>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const { scrollY, scrollYProgress } = useScroll({
     target: timelineRef,
     offset: ["start 68%", "end 72%"],
+  });
+  const { scrollYProgress: shiftProgress } = useScroll({
+    target: shiftRef,
+    offset: ["start 78%", "end 48%"],
   });
   const progressScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
@@ -160,8 +166,18 @@ function MobileCareerTimeline({ language }: { language: Language }) {
         <aside className="profile-mobile__rail" aria-hidden="true">
           <div className="profile-mobile__rail-track"><motion.i style={{ scaleY: progressScale }} /></div>
           <div className="profile-mobile__sticky-time">
-            <small>{mobileProfileTimeline[activeIndex]?.id}</small>
-            <b>{label(mobileProfileTimeline[activeIndex]?.time ?? mobileProfileTimeline[0].time)}</b>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={mobileProfileTimeline[activeIndex]?.id ?? "01"}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: .2, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <small>{mobileProfileTimeline[activeIndex]?.id}</small>
+                <b>{label(mobileProfileTimeline[activeIndex]?.time ?? mobileProfileTimeline[0].time)}</b>
+              </motion.div>
+            </AnimatePresence>
           </div>
           <ol>
             {mobileProfileTimeline.map((stage, index) => (
@@ -196,6 +212,7 @@ function MobileCareerTimeline({ language }: { language: Language }) {
               <p className="profile-mobile__date">{label(stage.time)}</p>
               <h2>{label(stage.title)}</h2>
               <h3>{label(stage.summary)}</h3>
+              <div className="profile-mobile__signals">{stage.signals.map((signal, signalIndex) => <i key={signal} style={{ transitionDelay: `${signalIndex * 70}ms` }}>{signal}</i>)}</div>
               <p className="profile-mobile__body">{label(stage.body)}</p>
 
               {stage.images.length > 0 && (
@@ -217,7 +234,6 @@ function MobileCareerTimeline({ language }: { language: Language }) {
                 {stage.duties.map((item) => <li key={`${stage.id}-${item.cn}`}>{label(item)}</li>)}
               </ul>
               <blockquote>{label(stage.reflection)}</blockquote>
-              <div className="profile-mobile__signals">{stage.signals.map((signal, signalIndex) => <i key={signal} style={{ transitionDelay: `${signalIndex * 70}ms` }}>{signal}</i>)}</div>
             </motion.article>
             {stage.transitionAfter && (
               <p className={`profile-mobile__transition${index < activeIndex ? " is-past" : ""}`}>
@@ -230,12 +246,14 @@ function MobileCareerTimeline({ language }: { language: Language }) {
         </div>
       </div>
 
-      <section className="profile-mobile__shift">
+      <section className="profile-mobile__shift" ref={shiftRef}>
         <p>THE SHIFT</p>
         <h2>{isCn ? "我的能力是怎么变化的" : "How the ability shifted"}</h2>
         <div>
-          {(isCn ? ["观察", "视觉", "叙事", "品牌", "执行", "运营", "系统", "AI"] : ["Observation", "Visual", "Narrative", "Brand", "Execution", "Operations", "System", "AI"]).map((item, index, array) => (
-            <span key={item}>{item}{index < array.length - 1 && <b>↓</b>}</span>
+          {shiftWords.map((item, index) => (
+            <ShiftWord key={item} progress={shiftProgress} index={index} total={shiftWords.length} showArrow={index < shiftWords.length - 1}>
+              {item}
+            </ShiftWord>
           ))}
         </div>
       </section>
@@ -258,6 +276,15 @@ function MobileCareerTimeline({ language }: { language: Language }) {
       </section>
     </section>
   );
+}
+
+function ShiftWord({ children, progress, index, total, showArrow }: { children: string; progress: MotionValue<number>; index: number; total: number; showArrow: boolean }) {
+  const start = Math.max(0, (index - .35) / total);
+  const middle = (index + .2) / total;
+  const end = Math.min(1, (index + 1.05) / total);
+  const opacity = useTransform(progress, [start, middle, end], [.32, 1, .54]);
+  const x = useTransform(progress, [start, middle, end], [-8, 0, 0]);
+  return <motion.span style={{ opacity, x }}>{children}{showArrow && <b>→</b>}</motion.span>;
 }
 
 export function CareerProfile() {
