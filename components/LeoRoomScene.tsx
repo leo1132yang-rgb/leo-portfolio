@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { CameraControls, ContactShadows, type CameraControlsImpl } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import * as THREE from "three";
@@ -10,14 +10,22 @@ import { CosmicBackdrop, WindowCosmicExterior } from "@/components/leo-room/Cosm
 import { CentralWorkspace } from "@/components/leo-room/CentralWorkspace";
 import { WallDisplays } from "@/components/leo-room/WallDisplays";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
-import { leoRoomCameraPresets, type LeoRoomFocusId, type LeoRoomPresetId } from "@/data/leoRoomCamera";
+import {
+  leoRoomExploreProfiles,
+  leoRoomFocusTargets,
+  leoRoomMobileOverviewCamera,
+  leoRoomOverviewCamera,
+  type LeoRoomFocusId,
+} from "@/data/leoRoomCamera";
 import { ROOM, ROOM_LAYOUT, ROOM_LIGHTING, ROOM_STRUCTURE } from "@/data/leoRoomDimensions";
 import type { PhotoWallImage } from "@/data/photoWall";
 
 // Archviz-style three-quarter view: high enough to read the floor plan, but
 // still low enough for the walls and window to feel like a real room.
-const CAMERA_POSITION = leoRoomCameraPresets.overview.position;
-const CAMERA_TARGET = leoRoomCameraPresets.overview.target;
+const CAMERA_POSITION = leoRoomOverviewCamera.position;
+const CAMERA_TARGET = leoRoomOverviewCamera.target;
+
+type RoomFocusRequest = { id: LeoRoomFocusId | "overview"; nonce: number };
 
 function generatedTexture(kind: "wall" | "wood" | "rug" | "window") {
   const width = kind === "window" ? 256 : 128;
@@ -321,21 +329,17 @@ function RoomLighting() {
   );
 }
 
-function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId }) {
+function RoomCameraControls({
+  focusRequest,
+  controlsEnabled,
+}: {
+  focusRequest: RoomFocusRequest | null;
+  controlsEnabled: boolean;
+}) {
   const controlsRef = useRef<CameraControlsImpl>(null);
   const { camera } = useThree();
   const [isMobileRoom, setIsMobileRoom] = useState(false);
-  const preset = leoRoomCameraPresets[activePreset];
-  const isMobileOverview = activePreset === "overview" && isMobileRoom;
-  const effectivePreset = useMemo(
-    () => isMobileOverview ? {
-      ...preset,
-      position: [-4.55, 7.7, 16.1] as [number, number, number],
-      target: [0, 1.06, -.35] as [number, number, number],
-      azimuth: [-1.08, .52] as [number, number],
-    } : preset,
-    [isMobileOverview, preset],
-  );
+  const profile = isMobileRoom ? leoRoomExploreProfiles.mobile : leoRoomExploreProfiles.desktop;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 767px)");
@@ -349,35 +353,35 @@ function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId })
     const controls = controlsRef.current;
     if (!controls) return;
     if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = isMobileOverview ? 54 : 48;
+      camera.fov = profile.fov;
       camera.updateProjectionMatrix();
     }
+    const destination = !focusRequest || focusRequest.id === "overview"
+      ? isMobileRoom ? leoRoomMobileOverviewCamera : leoRoomOverviewCamera
+      : leoRoomFocusTargets[focusRequest.id];
     void controls.setLookAt(
-      ...effectivePreset.position,
-      ...effectivePreset.target,
+      ...destination.position,
+      ...destination.target,
       true,
     );
-  }, [camera, effectivePreset, isMobileOverview]);
-
-  const rotateSpeed = isMobileRoom && activePreset !== "overview" ? 0 : .45;
-  const polarSpeed = isMobileRoom && activePreset !== "overview" ? 0 : .38;
-  const dollySpeed = isMobileRoom && activePreset !== "overview" ? 0 : .38;
+  }, [camera, focusRequest, focusRequest?.nonce, isMobileRoom, profile.fov]);
 
   return (
     <CameraControls
       ref={controlsRef}
       makeDefault
-      smoothTime={.92}
+      enabled={controlsEnabled}
+      smoothTime={.76}
       draggingSmoothTime={.12}
-      minDistance={2.8}
-      maxDistance={18.5}
-      minPolarAngle={.82}
-      maxPolarAngle={1.54}
-      minAzimuthAngle={effectivePreset.azimuth[0]}
-      maxAzimuthAngle={effectivePreset.azimuth[1]}
-      azimuthRotateSpeed={rotateSpeed}
-      polarRotateSpeed={polarSpeed}
-      dollySpeed={dollySpeed}
+      minDistance={profile.minDistance}
+      maxDistance={profile.maxDistance}
+      minPolarAngle={profile.minPolarAngle}
+      maxPolarAngle={profile.maxPolarAngle}
+      minAzimuthAngle={profile.minAzimuthAngle}
+      maxAzimuthAngle={profile.maxAzimuthAngle}
+      azimuthRotateSpeed={isMobileRoom ? .55 : .45}
+      polarRotateSpeed={isMobileRoom ? .42 : .38}
+      dollySpeed={.38}
       truckSpeed={0}
       dollyToCursor={false}
       infinityDolly={false}
@@ -386,18 +390,41 @@ function RoomCameraControls({ activePreset }: { activePreset: LeoRoomPresetId })
 }
 
 function EmptyRoom({
-  activePreset,
+  focusRequest,
+  controlsEnabled,
   onWallFocus,
+  onDeskFocus,
   onChildhoodActivate,
   onPhotoSelect,
   photoLightboxEnabled,
 }: {
-  activePreset: LeoRoomPresetId;
+  focusRequest: RoomFocusRequest | null;
+  controlsEnabled: boolean;
   onWallFocus: (id: LeoRoomFocusId) => void;
+  onDeskFocus: () => void;
   onChildhoodActivate: (id: ChildhoodStoryId) => void;
   onPhotoSelect: (photo: PhotoWallImage) => void;
   photoLightboxEnabled: boolean;
 }) {
+  const deskPointerRef = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
+  const deskTapHandlers = {
+    onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+      deskPointerRef.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY, dragged: false };
+    },
+    onPointerMove: (event: ThreeEvent<PointerEvent>) => {
+      const start = deskPointerRef.current;
+      if (!start) return;
+      const dx = event.nativeEvent.clientX - start.x;
+      const dy = event.nativeEvent.clientY - start.y;
+      if (Math.hypot(dx, dy) > 8) start.dragged = true;
+    },
+    onClick: (event: ThreeEvent<MouseEvent>) => {
+      event.stopPropagation();
+      if (deskPointerRef.current?.dragged) return;
+      onDeskFocus();
+    },
+  };
+
   return (
     <>
       <color attach="background" args={["#02050d"]} />
@@ -406,7 +433,9 @@ function EmptyRoom({
       <RoomShell />
       <CityWindow />
       <RoundRug />
-      <CentralWorkspace />
+      <group {...deskTapHandlers}>
+        <CentralWorkspace />
+      </group>
       <WallDisplays
         onFocus={onWallFocus}
         onChildhoodActivate={onChildhoodActivate}
@@ -415,20 +444,24 @@ function EmptyRoom({
       />
       <RoomLighting />
       <ContactShadows position={[0, .018, .3]} scale={ROOM.width * .82} opacity={.32} blur={2.3} far={ROOM.height + 1} resolution={512} color="#1c120d" />
-      <RoomCameraControls activePreset={activePreset} />
+      <RoomCameraControls focusRequest={focusRequest} controlsEnabled={controlsEnabled} />
     </>
   );
 }
 
 export function LeoRoomScene({
-  activePreset,
+  focusRequest,
+  controlsEnabled = true,
   onWallFocus,
+  onDeskFocus,
   onChildhoodActivate,
   onPhotoSelect,
   photoLightboxEnabled,
 }: {
-  activePreset: LeoRoomPresetId;
+  focusRequest: RoomFocusRequest | null;
+  controlsEnabled?: boolean;
   onWallFocus: (id: LeoRoomFocusId) => void;
+  onDeskFocus: () => void;
   onChildhoodActivate: (id: ChildhoodStoryId) => void;
   onPhotoSelect: (photo: PhotoWallImage) => void;
   photoLightboxEnabled: boolean;
@@ -449,8 +482,10 @@ export function LeoRoomScene({
       }}
     >
       <EmptyRoom
-        activePreset={activePreset}
+        focusRequest={focusRequest}
+        controlsEnabled={controlsEnabled}
         onWallFocus={onWallFocus}
+        onDeskFocus={onDeskFocus}
         onChildhoodActivate={onChildhoodActivate}
         onPhotoSelect={onPhotoSelect}
         photoLightboxEnabled={photoLightboxEnabled}

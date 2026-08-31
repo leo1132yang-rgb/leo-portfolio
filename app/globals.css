@@ -3907,8 +3907,8 @@ body:has(.childhood-reader--story.is-open) .sound-toggle,body:has(.photo-wall-li
   .leo-room__focus-card:empty,.leo-room__panel:empty{display:none!important;pointer-events:none!important}
   .leo-room__childhood-hint{bottom:calc(116px + env(safe-area-inset-bottom));min-height:44px;min-width:188px;padding:10px 16px;border-radius:999px;cursor:pointer;pointer-events:auto}
   .leo-room__childhood-hint:active{transform:translateX(-50%) scale(.985)}
-  .leo-room__presets{right:12px;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:5px;overflow:visible}
-  .leo-room__presets button{display:flex;min-width:0;height:40px;justify-content:center;gap:4px;padding:0 5px}
+  .leo-room__presets{right:12px;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:5px;overflow:visible}
+  .leo-room__presets button{display:flex;min-width:0;min-height:44px;justify-content:center;gap:4px;padding:0 5px}
   .leo-room__presets button small{font-size:7px}
   .leo-room__presets button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:9px;letter-spacing:.04em}
   body:has(.leo-room) .sound-toggle{right:calc(14px + env(safe-area-inset-right));bottom:calc(112px + env(safe-area-inset-bottom));z-index:38}
@@ -3917,7 +3917,7 @@ body:has(.childhood-reader--story.is-open) .sound-toggle,body:has(.photo-wall-li
 
 @media(max-width:360px){
   .leo-room__presets{left:8px;right:8px;gap:3px;padding:4px}
-  .leo-room__presets button{height:38px;padding:0 3px}
+  .leo-room__presets button{min-height:42px;padding:0 3px}
   .leo-room__presets button span{font-size:8px}
   body:has(.leo-room) .sound-toggle{bottom:calc(106px + env(safe-area-inset-bottom))}
 }

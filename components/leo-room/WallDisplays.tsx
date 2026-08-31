@@ -2,7 +2,7 @@
 
 import { Html, useTexture } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
@@ -32,7 +32,18 @@ const frameMaterials: Record<PhotoWallFrameStyle, { color: string; metalness: nu
 
 function useInteractiveWall(onActivate: () => void) {
   const [hovered, setHovered] = useState(false);
+  const pointerRef = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
   const handlers = {
+    onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+      pointerRef.current = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY, dragged: false };
+    },
+    onPointerMove: (event: ThreeEvent<PointerEvent>) => {
+      const start = pointerRef.current;
+      if (!start) return;
+      const dx = event.nativeEvent.clientX - start.x;
+      const dy = event.nativeEvent.clientY - start.y;
+      if (Math.hypot(dx, dy) > 8) start.dragged = true;
+    },
     onPointerOver: (event: ThreeEvent<PointerEvent>) => {
       event.stopPropagation();
       setHovered(true);
@@ -43,6 +54,7 @@ function useInteractiveWall(onActivate: () => void) {
     },
     onClick: (event: ThreeEvent<MouseEvent>) => {
       event.stopPropagation();
+      if (pointerRef.current?.dragged) return;
       onActivate();
     },
   };
@@ -93,6 +105,7 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
   const textures = useTexture(photoPaths) as THREE.Texture[];
   const { hovered, handlers } = useInteractiveWall(() => onFocus("gallery"));
   const [hoveredPhotoId, setHoveredPhotoId] = useState<string | null>(null);
+  const photoPointerRef = useRef<{ id: string; x: number; y: number; dragged: boolean } | null>(null);
 
   useEffect(() => {
     textures.forEach((texture) => {
@@ -121,8 +134,19 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
         const frameDepth = slot.size === "hero" ? .14 : slot.size === "medium" ? .115 : .09;
         const matte = slot.frame === "metal" ? "#b9b2a5" : "#d5cbb9";
         const photoHandlers = {
+          onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+            photoPointerRef.current = { id: photo.id, x: event.nativeEvent.clientX, y: event.nativeEvent.clientY, dragged: false };
+          },
+          onPointerMove: (event: ThreeEvent<PointerEvent>) => {
+            const start = photoPointerRef.current;
+            if (!start || start.id !== photo.id) return;
+            const dx = event.nativeEvent.clientX - start.x;
+            const dy = event.nativeEvent.clientY - start.y;
+            if (Math.hypot(dx, dy) > 8) start.dragged = true;
+          },
           onClick: (event: ThreeEvent<MouseEvent>) => {
             event.stopPropagation();
+            if (photoPointerRef.current?.id === photo.id && photoPointerRef.current.dragged) return;
             if (photoLightboxEnabled) {
               onPhotoSelect?.(photo);
               return;

@@ -8,7 +8,7 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { useGlobalAudio } from "@/hooks/useGlobalAudio";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
-import { leoRoomPresetLabels, type LeoRoomFocusId, type LeoRoomPresetId } from "@/data/leoRoomCamera";
+import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
 import { photoWallImages } from "@/data/photoWall";
 
 const LeoRoomScene = dynamic(() => import("@/components/LeoRoomScene").then((mod) => mod.LeoRoomScene), {
@@ -51,20 +51,21 @@ const focusContent = {
   },
 } as const;
 
-type FocusCardId = Exclude<LeoRoomFocusId, "journey">;
-type ChildhoodViewState = "overview" | "focused" | "reading";
-type GalleryViewState = "overview" | "focused" | "lightbox";
+type FocusCardId = "digital" | "travel";
+type ActiveRoomTarget = "desk" | "childhood" | "gallery" | null;
+type RoomMode = "explore" | "reading" | "photoOpen";
+type RoomFocusRequest = { id: LeoRoomFocusId | "overview"; nonce: number };
 
 export function OtherSide() {
   const { language } = useLanguage();
   const { switchTrack } = useGlobalAudio();
   const router = useRouter();
   const cn = language === "cn";
-  const [activePreset, setActivePreset] = useState<LeoRoomPresetId>("overview");
+  const [focusRequest, setFocusRequest] = useState<RoomFocusRequest | null>(null);
   const [focusedItem, setFocusedItem] = useState<FocusCardId | null>(null);
+  const [activeTarget, setActiveTarget] = useState<ActiveRoomTarget>(null);
+  const [roomMode, setRoomMode] = useState<RoomMode>("explore");
   const [readingOpen, setReadingOpen] = useState(false);
-  const [childhoodViewState, setChildhoodViewState] = useState<ChildhoodViewState>("overview");
-  const [galleryViewState, setGalleryViewState] = useState<GalleryViewState>("overview");
   const [activeStoryId, setActiveStoryId] = useState<ChildhoodStoryId>("01");
   const [photoLightboxId, setPhotoLightboxId] = useState<string | null>(null);
   const [childhoodOverlayLoaded, setChildhoodOverlayLoaded] = useState(false);
@@ -77,6 +78,10 @@ export function OtherSide() {
       window.clearTimeout(readingTimer.current);
       readingTimer.current = null;
     }
+  };
+
+  const requestRoomFocus = (id: LeoRoomFocusId | "overview") => {
+    setFocusRequest({ id, nonce: Date.now() });
   };
 
   useEffect(() => {
@@ -95,8 +100,8 @@ export function OtherSide() {
     clearReadingTimer();
     setActiveStoryId(id);
     setFocusedItem(null);
-    setActivePreset("journey");
-    setChildhoodViewState("reading");
+    setActiveTarget("childhood");
+    setRoomMode("reading");
     setReadingOpen(true);
   };
 
@@ -104,16 +109,18 @@ export function OtherSide() {
     clearReadingTimer();
     setReadingOpen(false);
     setFocusedItem(null);
-    setActivePreset("journey");
-    setChildhoodViewState("focused");
+    setPhotoLightboxId(null);
+    setActiveTarget("childhood");
+    setRoomMode("explore");
+    requestRoomFocus("journey");
   };
 
   const activateChildhoodWall = (id: ChildhoodStoryId = "01") => {
-    if (childhoodViewState === "focused") {
+    if (activeTarget === "childhood" && roomMode === "explore") {
       openChildhoodReader(id);
       return;
     }
-    if (childhoodViewState === "reading") return;
+    if (roomMode === "reading") return;
     setActiveStoryId(id);
     focusChildhoodWall();
   };
@@ -121,31 +128,51 @@ export function OtherSide() {
   const closeChildhoodReader = () => {
     clearReadingTimer();
     setReadingOpen(false);
-    setActivePreset("journey");
-    setChildhoodViewState("focused");
+    setRoomMode("explore");
+    setActiveTarget("childhood");
   };
 
   const focusGalleryWall = () => {
     clearReadingTimer();
     setReadingOpen(false);
-    setChildhoodViewState("overview");
     setPhotoLightboxId(null);
-    setActivePreset("gallery");
+    setActiveTarget("gallery");
+    setRoomMode("explore");
+    requestRoomFocus("gallery");
     setFocusedItem(null);
-    setGalleryViewState("focused");
   };
 
   const openPhotoLightbox = (photoId: string) => {
-    setActivePreset("gallery");
     setFocusedItem(null);
+    setActiveTarget("gallery");
+    setRoomMode("photoOpen");
     setPhotoLightboxId(photoId);
-    setGalleryViewState("lightbox");
   };
 
   const closePhotoLightbox = () => {
     setPhotoLightboxId(null);
-    setActivePreset("gallery");
-    setGalleryViewState("focused");
+    setRoomMode("explore");
+    setActiveTarget("gallery");
+  };
+
+  const resetRoomOverview = () => {
+    clearReadingTimer();
+    setReadingOpen(false);
+    setPhotoLightboxId(null);
+    setFocusedItem(null);
+    setActiveTarget(null);
+    setRoomMode("explore");
+    requestRoomFocus("overview");
+  };
+
+  const focusDesk = () => {
+    clearReadingTimer();
+    setReadingOpen(false);
+    setPhotoLightboxId(null);
+    setFocusedItem(null);
+    setActiveTarget("desk");
+    setRoomMode("explore");
+    requestRoomFocus("desk");
   };
 
   const returnFromRoom = () => {
@@ -153,21 +180,25 @@ export function OtherSide() {
       closePhotoLightbox();
       return;
     }
-    if (galleryViewState === "focused") {
-      setGalleryViewState("overview");
+    if (activeTarget === "gallery") {
       setPhotoLightboxId(null);
-      setActivePreset("overview");
       setFocusedItem(null);
+      setActiveTarget(null);
       return;
     }
     if (readingOpen) {
       closeChildhoodReader();
       return;
     }
-    if (childhoodViewState === "focused") {
+    if (activeTarget === "childhood") {
       clearReadingTimer();
-      setChildhoodViewState("overview");
-      setActivePreset("overview");
+      setFocusedItem(null);
+      setActiveTarget(null);
+      setRoomMode("explore");
+      return;
+    }
+    if (activeTarget === "desk") {
+      setActiveTarget(null);
       setFocusedItem(null);
       return;
     }
@@ -192,26 +223,29 @@ export function OtherSide() {
         closePhotoLightbox();
         return;
       }
-      if (galleryViewState === "focused") {
-        setGalleryViewState("overview");
+      if (activeTarget === "gallery") {
         setPhotoLightboxId(null);
-        setActivePreset("overview");
         setFocusedItem(null);
+        setActiveTarget(null);
         return;
       }
       if (readingOpen) {
         closeChildhoodReader();
         return;
       }
-      if (childhoodViewState === "focused") {
+      if (activeTarget === "childhood") {
         clearReadingTimer();
-        setChildhoodViewState("overview");
-        setActivePreset("overview");
+        setFocusedItem(null);
+        setActiveTarget(null);
+        setRoomMode("explore");
+        return;
+      }
+      if (activeTarget === "desk") {
+        setActiveTarget(null);
         setFocusedItem(null);
         return;
       }
       setFocusedItem(null);
-      setActivePreset("overview");
     };
     document.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("keyup", onKeyDown, true);
@@ -220,31 +254,10 @@ export function OtherSide() {
       document.removeEventListener("keyup", onKeyDown, true);
       clearReadingTimer();
     };
-  }, [readingOpen, childhoodViewState, galleryViewState, photoLightboxId]);
-
-  const choosePreset = (preset: LeoRoomPresetId) => {
-    if (preset === "journey") {
-      setGalleryViewState("overview");
-      setPhotoLightboxId(null);
-      focusChildhoodWall();
-      return;
-    }
-    if (preset === "gallery") {
-      focusGalleryWall();
-      return;
-    }
-    clearReadingTimer();
-    setReadingOpen(false);
-    setChildhoodViewState("overview");
-    setGalleryViewState("overview");
-    setPhotoLightboxId(null);
-    setFocusedItem(null);
-    setActivePreset(preset);
-  };
+  }, [readingOpen, activeTarget, photoLightboxId]);
 
   const focusWall = (id: LeoRoomFocusId) => {
     if (id === "journey") {
-      setGalleryViewState("overview");
       setPhotoLightboxId(null);
       activateChildhoodWall("01");
       return;
@@ -253,25 +266,16 @@ export function OtherSide() {
       focusGalleryWall();
       return;
     }
-    setChildhoodViewState("overview");
-    setGalleryViewState("overview");
     setPhotoLightboxId(null);
-    setActivePreset(id);
-    setFocusedItem(id);
+    setActiveTarget(null);
+    setRoomMode("explore");
+    requestRoomFocus(id);
+    if (id === "digital" || id === "travel") setFocusedItem(id);
   };
 
   const panel = focusedItem ? focusContent[focusedItem] : null;
-  const presetCopy: Record<LeoRoomPresetId, string> = {
-    overview: cn ? "总览" : "OVERVIEW",
-    desk: cn ? "工作台" : "DESK",
-    journey: cn ? "童年" : "CHILDHOOD",
-    gallery: cn ? "照片墙" : "GALLERY",
-    digital: cn ? "数字" : "DIGITAL",
-    travel: cn ? "旅行" : "TRAVEL",
-  };
-
   return (
-    <main className={`leo-room${childhoodViewState === "reading" ? " is-reading" : ""}`}>
+    <main className={`leo-room${roomMode === "reading" ? " is-reading" : ""}`}>
       <SiteNavbar variant="hero" />
       <button type="button" className="leo-room__mobile-back" onClick={returnFromRoom} aria-label={cn ? "返回" : "Back"}>
         <span aria-hidden="true">←</span>{cn ? "返回" : "Back"}
@@ -288,24 +292,25 @@ export function OtherSide() {
       </header>
       <div className="leo-room__canvas">
         <LeoRoomScene
-          activePreset={activePreset}
+          focusRequest={focusRequest}
+          controlsEnabled={roomMode === "explore"}
           onWallFocus={focusWall}
+          onDeskFocus={focusDesk}
           onChildhoodActivate={activateChildhoodWall}
           onPhotoSelect={(photo) => openPhotoLightbox(photo.id)}
-          photoLightboxEnabled={galleryViewState === "focused"}
+          photoLightboxEnabled={activeTarget === "gallery" && roomMode === "explore"}
         />
       </div>
 
-      <nav className="leo-room__presets" aria-label={cn ? "房间观察机位" : "Room camera views"}>
-        {leoRoomPresetLabels.map((preset, index) => (
-          <button
-            type="button"
-            key={preset.id}
-            className={activePreset === preset.id ? "is-active" : ""}
-            onClick={() => choosePreset(preset.id)}
-          >
-            <small>0{index + 1}</small>
-            <span>{presetCopy[preset.id]}</span>
+      <nav className="leo-room__presets" aria-label={cn ? "房间探索区域" : "Room exploration areas"}>
+        {[
+          { id: "overview", number: "01", label: cn ? "总览" : "OVERVIEW", onClick: resetRoomOverview, active: !activeTarget && roomMode === "explore" },
+          { id: "desk", number: "02", label: cn ? "工作台" : "DESK", onClick: focusDesk, active: activeTarget === "desk" },
+          { id: "childhood", number: "03", label: cn ? "童年" : "CHILDHOOD", onClick: focusChildhoodWall, active: activeTarget === "childhood" },
+          { id: "gallery", number: "04", label: cn ? "照片墙" : "GALLERY", onClick: focusGalleryWall, active: activeTarget === "gallery" },
+        ].map((item) => (
+          <button key={item.id} type="button" className={item.active ? "is-active" : ""} onClick={item.onClick}>
+            <small>{item.number}</small><span>{item.label}</span>
           </button>
         ))}
       </nav>
@@ -337,14 +342,14 @@ export function OtherSide() {
         />
       )}
 
-      {childhoodViewState === "focused" && !readingOpen && (
+      {activeTarget === "childhood" && roomMode === "explore" && !readingOpen && (
         <button type="button" className="leo-room__childhood-hint" onClick={() => openChildhoodReader(activeStoryId)}>
-          <span>CLICK AGAIN TO ENTER</span>
-          <b>{cn ? "再次点击进入故事" : "Enter the story"}</b>
+          <span>{cn ? "再次点击入口画面" : "CLICK THE WALL AGAIN"}</span>
+          <b>{cn ? "进入童年故事 →" : "Enter the story →"}</b>
         </button>
       )}
 
-      {galleryViewState === "focused" && !photoLightboxId && (
+      {activeTarget === "gallery" && roomMode === "explore" && !photoLightboxId && (
         <div className="leo-room__gallery-hint">
           {cn ? "点击照片，查看我的故事" : "Tap a photo to read the story"}
         </div>
