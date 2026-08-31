@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 
@@ -19,11 +19,12 @@ const tools = [
   { name: "DaVinci Resolve", icon: "/icons/tools/davinci-resolve.png" }, { name: "剪映", icon: "/icons/tools/jianying.png" }, { name: "Codex", icon: "/icons/tools/codex.png" },
 ];
 
-const HERO_VIDEO_SRC = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_204221_5339e40b-e73d-4ab0-9c65-79c18c66fd50.mp4";
-const HERO_MOBILE_POSTER = "/images/hero-poster.webp";
+const HERO_DESKTOP_VIDEO_SRC = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_204221_5339e40b-e73d-4ab0-9c65-79c18c66fd50.mp4";
+const HERO_MOBILE_VIDEO_SRC = "/videos/hero-mobile.mp4";
 
 export function LeoHero() {
   const { language } = useLanguage(); const cn = language === "cn";
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
   const [isMobileHero, setIsMobileHero] = useState(true);
   const [videoReady, setVideoReady] = useState(false);
@@ -44,9 +45,34 @@ export function LeoHero() {
     setShouldLoadVideo(true);
   }, []);
 
+  const videoSrc = isMobileHero ? HERO_MOBILE_VIDEO_SRC : HERO_DESKTOP_VIDEO_SRC;
+
+  useEffect(() => {
+    if (!shouldLoadVideo || !videoRef.current) return;
+    let disposed = false;
+    let cleanupRetry = () => undefined;
+    const video = videoRef.current;
+    const retry = () => {
+      cleanupRetry();
+      void video.play().catch(() => undefined);
+    };
+    cleanupRetry = () => {
+      window.removeEventListener("pointerdown", retry);
+      window.removeEventListener("keydown", retry);
+    };
+    void video.play().catch(() => {
+      if (disposed) return;
+      window.addEventListener("pointerdown", retry, { once: true });
+      window.addEventListener("keydown", retry, { once: true });
+    });
+    return () => {
+      disposed = true;
+      cleanupRetry();
+    };
+  }, [shouldLoadVideo, videoSrc]);
+
   return <main id="home" className="leo-hero relative h-screen w-full overflow-hidden bg-black font-geist">
-    <img src={HERO_MOBILE_POSTER} alt="" aria-hidden="true" className={`leo-hero__poster${videoReady && !videoFailed ? " is-hidden" : ""}`} decoding="async" fetchPriority="high" />
-    {shouldLoadVideo && <video autoPlay muted loop playsInline preload={isMobileHero ? "auto" : "metadata"} onLoadedData={() => setVideoReady(true)} onCanPlay={() => setVideoReady(true)} onError={() => setVideoFailed(true)} className={`leo-hero__video pointer-events-none absolute h-full w-full object-cover object-[70%_center]${videoReady && !videoFailed ? " is-ready" : ""}`} src={HERO_VIDEO_SRC} />}
+    {shouldLoadVideo && <video ref={videoRef} autoPlay muted loop playsInline preload={isMobileHero ? "auto" : "metadata"} onCanPlay={() => setVideoReady(true)} onPlaying={() => setVideoReady(true)} onError={() => setVideoFailed(true)} className={`leo-hero__video pointer-events-none absolute h-full w-full object-cover object-[70%_center]${videoReady && !videoFailed ? " is-ready" : ""}`} src={videoSrc} />}
     <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/[.16] via-black/[.08] to-black/[.38]" aria-hidden="true" /><div className="leo-hero__readability" aria-hidden="true" />
     <SiteNavbar variant="hero" />
     <section className="leo-hero__content" aria-label={cn ? "李阳个人介绍" : "Leo personal introduction"}>
