@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
+import { ProjectBackButton } from "@/components/ProjectBackButton";
 import { ProjectTiltCard } from "@/components/projects/ProjectTiltCard";
 
 export type PosterItem = { src: string; previewSrc: string };
@@ -103,6 +104,7 @@ export function PosterDesignLanding({ eventPosters, coursePosters }: { eventPost
   return (
     <main className="poster-design-page poster-design-landing">
       <SiteNavbar />
+      <ProjectBackButton fallbackHref="/projects" />
       <div className="poster-design-atmosphere" aria-hidden="true" />
       <section className="poster-design-landing__inner">
         <Link href="/projects" className="poster-design-breadcrumb">← {cn ? "返回项目作品" : "Back to Projects"}</Link>
@@ -156,6 +158,7 @@ export function PosterCollectionPage({ group, items }: { group: PosterGroup; ite
   return (
     <main className="poster-design-page poster-collection-page">
       <SiteNavbar />
+      <ProjectBackButton fallbackHref="/projects/poster-design" />
       <div className="poster-design-atmosphere" aria-hidden="true" />
       <section className="poster-collection-page__inner">
         <div className="poster-collection-topline"><Link href="/projects/poster-design" className="poster-design-breadcrumb">← {cn ? "返回视觉海报设计" : "Back to Poster Design"}</Link><span>{group === "event" ? "01" : "02"} / {String(items.length).padStart(2, "0")}</span></div>

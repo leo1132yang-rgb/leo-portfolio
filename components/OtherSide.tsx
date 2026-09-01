@@ -70,6 +70,8 @@ export function OtherSide() {
   const [photoLightboxId, setPhotoLightboxId] = useState<string | null>(null);
   const [childhoodOverlayLoaded, setChildhoodOverlayLoaded] = useState(false);
   const [photoLightboxLoaded, setPhotoLightboxLoaded] = useState(false);
+  const [showExploreHint, setShowExploreHint] = useState(true);
+  const [isMobileRoom, setIsMobileRoom] = useState(false);
   const readingTimer = useRef<number | null>(null);
   const escapeKeyDownHandled = useRef(false);
 
@@ -95,6 +97,19 @@ export function OtherSide() {
   useEffect(() => {
     if (photoLightboxId) setPhotoLightboxLoaded(true);
   }, [photoLightboxId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowExploreHint(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const update = () => setIsMobileRoom(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
 
   const openChildhoodReader = (id: ChildhoodStoryId) => {
     clearReadingTimer();
@@ -153,16 +168,6 @@ export function OtherSide() {
     setPhotoLightboxId(null);
     setRoomMode("explore");
     setActiveTarget("gallery");
-  };
-
-  const resetRoomOverview = () => {
-    clearReadingTimer();
-    setReadingOpen(false);
-    setPhotoLightboxId(null);
-    setFocusedItem(null);
-    setActiveTarget(null);
-    setRoomMode("explore");
-    requestRoomFocus("overview");
   };
 
   const focusDesk = () => {
@@ -267,6 +272,7 @@ export function OtherSide() {
   }, [readingOpen, activeTarget, photoLightboxId]);
 
   const focusWall = (id: LeoRoomFocusId) => {
+    setShowExploreHint(false);
     if (id === "journey") {
       setPhotoLightboxId(null);
       activateChildhoodWall("01");
@@ -289,7 +295,7 @@ export function OtherSide() {
 
   const panel = focusedItem ? focusContent[focusedItem] : null;
   return (
-    <main className={`leo-room${roomMode === "reading" ? " is-reading" : ""}`}>
+    <main className={`leo-room${roomMode === "reading" ? " is-reading" : ""}`} onPointerDown={() => setShowExploreHint(false)}>
       <SiteNavbar variant="hero" />
       <button type="button" className="leo-room__mobile-back" onClick={returnFromRoom} aria-label={cn ? "返回" : "Back"}>
         <span aria-hidden="true">←</span>{cn ? "返回" : "Back"}
@@ -315,19 +321,6 @@ export function OtherSide() {
           photoLightboxEnabled={activeTarget === "gallery" && roomMode === "explore"}
         />
       </div>
-
-      <nav className="leo-room__presets" aria-label={cn ? "房间探索区域" : "Room exploration areas"}>
-        {[
-          { id: "overview", number: "01", label: cn ? "总览" : "OVERVIEW", onClick: resetRoomOverview, active: !activeTarget && roomMode === "explore" },
-          { id: "desk", number: "02", label: cn ? "工作台" : "DESK", onClick: focusDesk, active: activeTarget === "desk" },
-          { id: "childhood", number: "03", label: cn ? "童年" : "CHILDHOOD", onClick: focusChildhoodWall, active: activeTarget === "childhood" },
-          { id: "gallery", number: "04", label: cn ? "照片墙" : "GALLERY", onClick: focusGalleryWall, active: activeTarget === "gallery" },
-        ].map((item) => (
-          <button key={item.id} type="button" className={item.active ? "is-active" : ""} onClick={item.onClick}>
-            <small>{item.number}</small><span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
 
       {panel && (
         <aside className="leo-room__focus-card" aria-live="polite">
@@ -363,13 +356,22 @@ export function OtherSide() {
         </button>
       )}
 
+      {activeTarget === "desk" && roomMode === "explore" && (
+        <div className="leo-room__desk-hint">
+          <span>{cn ? "工作台" : "MY DESK"}</span>
+          <b>{cn ? "拖动继续探索" : "Keep exploring freely"}</b>
+        </div>
+      )}
+
       {activeTarget === "gallery" && roomMode === "explore" && !photoLightboxId && (
         <div className="leo-room__gallery-hint">
           {cn ? "点击照片，查看我的故事" : "Tap a photo to read the story"}
         </div>
       )}
 
-      <div className="leo-room__hint"><b>⌘</b>{cn ? "拖动 · 滚轮缩放 · Esc 返回总览" : "Drag · Scroll to zoom · Esc for overview"}</div>
+      {showExploreHint && (
+        <div className="leo-room__hint"><b>⌘</b>{cn ? (isMobileRoom ? "拖动探索 · 双指缩放" : "拖动探索 · 滚轮缩放") : (isMobileRoom ? "DRAG TO EXPLORE · PINCH TO ZOOM" : "DRAG TO EXPLORE · SCROLL TO ZOOM")}</div>
+      )}
     </main>
   );
 }

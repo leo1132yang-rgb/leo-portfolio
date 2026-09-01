@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLanguage } from "@/components/LanguageProvider";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
+import { ProjectBackButton } from "@/components/ProjectBackButton";
 
 type Copy = { cn: string; en: string };
 
@@ -60,6 +61,7 @@ export function PlatformProject() {
   return (
     <main className="platform-case">
       <SiteNavbar />
+      <ProjectBackButton fallbackHref="/projects" />
       <div className="platform-case__shell">
         <header className="platform-case__topline">
           <Link href="/projects">← <span>{cn ? "项目作品" : "Projects"}</span></Link>

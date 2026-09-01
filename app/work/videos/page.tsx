@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
+import { ProjectBackButton } from "@/components/ProjectBackButton";
 
 export const metadata: Metadata = {
   title: "视频项目｜李阳 Leo",
@@ -14,6 +15,7 @@ export default function VideosPage() {
     <main className="min-h-screen">
       <div className="noise" />
       <Nav />
+      <ProjectBackButton fallbackHref="/projects/videos" />
       <section className="mx-auto max-w-[1200px] px-6 pb-32 pt-36 md:px-10 md:pt-44">
         <div className="grid gap-10 border-b border-white/10 pb-14 lg:grid-cols-[.9fr_1.1fr]">
           <div>
