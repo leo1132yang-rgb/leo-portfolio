@@ -175,6 +175,16 @@ export function OtherSide() {
     requestRoomFocus("desk");
   };
 
+  const openMyWorldMap = () => {
+    clearReadingTimer();
+    setReadingOpen(false);
+    setPhotoLightboxId(null);
+    setFocusedItem(null);
+    setActiveTarget(null);
+    setRoomMode("explore");
+    router.push("/other-side/world");
+  };
+
   const returnFromRoom = () => {
     if (photoLightboxId) {
       closePhotoLightbox();
@@ -266,11 +276,15 @@ export function OtherSide() {
       focusGalleryWall();
       return;
     }
+    if (id === "travel") {
+      openMyWorldMap();
+      return;
+    }
     setPhotoLightboxId(null);
     setActiveTarget(null);
     setRoomMode("explore");
     requestRoomFocus(id);
-    if (id === "digital" || id === "travel") setFocusedItem(id);
+    if (id === "digital") setFocusedItem(id);
   };
 
   const panel = focusedItem ? focusContent[focusedItem] : null;
