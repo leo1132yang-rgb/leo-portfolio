@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getTravelPlacePhotos, travelWorldPlaces, type TravelWorldPlace } from "@/data/travelWorld";
@@ -86,21 +86,26 @@ function WorldTravelMap({
             <stop offset="100%" stopColor="#020507" stopOpacity=".98" />
           </linearGradient>
           <radialGradient id="worldOceanGlow" cx="62%" cy="42%" r="70%">
-            <stop offset="0%" stopColor="#1d5061" stopOpacity=".2" />
-            <stop offset="54%" stopColor="#0c2330" stopOpacity=".08" />
+            <stop offset="0%" stopColor="#22383d" stopOpacity=".14" />
+            <stop offset="54%" stopColor="#0c1b21" stopOpacity=".055" />
             <stop offset="100%" stopColor="#010305" stopOpacity="0" />
           </radialGradient>
           <linearGradient id="worldLandSurface" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#234653" stopOpacity=".34" />
-            <stop offset="46%" stopColor="#5f6f66" stopOpacity=".3" />
-            <stop offset="100%" stopColor="#d0ac68" stopOpacity=".18" />
+            <stop offset="0%" stopColor="#2c3d42" stopOpacity=".2" />
+            <stop offset="48%" stopColor="#3f504f" stopOpacity=".18" />
+            <stop offset="100%" stopColor="#8a7652" stopOpacity=".12" />
           </linearGradient>
-          <pattern id="worldLandDots" width="10" height="10" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1.15" fill="#9fb7b9" opacity=".34" />
-            <circle cx="7.5" cy="7.5" r=".75" fill="#d6b46a" opacity=".16" />
+          <radialGradient id="worldAsiaGlow" cx="68%" cy="43%" r="28%">
+            <stop offset="0%" stopColor="#d6b46a" stopOpacity=".17" />
+            <stop offset="42%" stopColor="#5f746d" stopOpacity=".08" />
+            <stop offset="100%" stopColor="#020506" stopOpacity="0" />
+          </radialGradient>
+          <pattern id="worldLandDots" width="8" height="8" patternUnits="userSpaceOnUse">
+            <circle cx="1.6" cy="1.8" r=".72" fill="#a8b7b5" opacity=".18" />
+            <circle cx="5.8" cy="5.6" r=".48" fill="#d6b46a" opacity=".08" />
           </pattern>
-          <pattern id="worldFineGrid" width="46" height="46" patternUnits="userSpaceOnUse">
-            <path d="M46 0H0V46" fill="none" stroke="#b9c8c8" strokeOpacity=".045" strokeWidth="1" />
+          <pattern id="worldFineGrid" width="52" height="52" patternUnits="userSpaceOnUse">
+            <path d="M52 0H0V52" fill="none" stroke="#b9c8c8" strokeOpacity=".028" strokeWidth="1" />
           </pattern>
           <clipPath id="worldLandClip">
             {WORLD_LAND_PATHS.map((path, index) => <path key={index} d={path} />)}
@@ -148,6 +153,7 @@ function WorldTravelMap({
           <g className="world-map-land-surface" aria-hidden="true">
             {WORLD_LAND_PATHS.map((path, index) => <path key={index} d={path} />)}
           </g>
+          <rect className="world-map-asia-glow" x="38" y="44" width="924" height="432" clipPath="url(#worldLandClip)" fill="url(#worldAsiaGlow)" />
           <rect className="world-map-land-dots" x="38" y="44" width="924" height="432" clipPath="url(#worldLandClip)" fill="url(#worldLandDots)" />
           <g className="world-map-land">
             {WORLD_LAND_PATHS.map((path, index) => <path key={index} d={path} />)}
@@ -168,11 +174,11 @@ function WorldTravelMap({
               return (
                 <motion.g
                   key={place.id}
-                  className={`world-map-node${active ? " is-active" : ""}${home ? " is-home" : ""}`}
+                  className={`world-map-node${active ? " is-active" : ""}${hovered ? " is-hovered" : ""}${home ? " is-home" : ""}`}
                   style={{ transformOrigin: `${point.x}px ${point.y}px` }}
                   initial={{ opacity: 0, scale: .75 }}
-                  animate={{ opacity: 1, scale: active || hovered ? 1.18 : 1 }}
-                  transition={{ duration: .32, delay: index * .035, ease: [0.22, 1, 0.36, 1] }}
+                  animate={{ opacity: 1, scale: active || hovered ? 1.4 : home ? 1.08 : 1 }}
+                  transition={{ duration: .22, delay: index * .025, ease: [0.22, 1, 0.36, 1] }}
                   onMouseEnter={() => setHoveredId(place.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   onFocus={() => setHoveredId(place.id)}
@@ -183,13 +189,16 @@ function WorldTravelMap({
                   aria-label={label}
                 >
                   <circle className="world-map-node__hit" cx={point.x} cy={point.y} r="18" />
-                  {(home || active) && <circle className="world-map-node__ring" cx={point.x} cy={point.y} r={home ? 12 : 10} />}
-                  <circle className="world-map-node__dot" cx={point.x} cy={point.y} r={home ? 5.6 : active ? 5.2 : 4.1} />
+                  {(home || active || hovered) && <circle className="world-map-node__ring" cx={point.x} cy={point.y} r={home ? 11 : 9} />}
+                  <circle className="world-map-node__dot" cx={point.x} cy={point.y} r={home ? 5.6 : active || hovered ? 4.8 : 3.35} />
                   {showLabel && (
-                    <g className="world-map-label">
+                    <g className={`world-map-label${home ? " is-origin" : ""}`}>
                       <line x1={point.x + 8} y1={point.y - 8} x2={point.x + 28} y2={point.y - 22} />
-                      <text x={point.x + 32} y={point.y - 26}>{label}</text>
-                      <text x={point.x + 32} y={point.y - 12} className="world-map-label__date">{place.date.split(" / ")[0]}</text>
+                      <text x={point.x + 32} y={point.y - 28}>{place.nameEn.toUpperCase()}</text>
+                      <text x={point.x + 32} y={point.y - 13} className="world-map-label__date">
+                        {cn ? `${place.nameZh} · ${place.date.split(" / ")[0]}` : `${place.nameZh} · ${place.date.split(" / ")[0]}`}
+                      </text>
+                      {home && <text x={point.x + 32} y={point.y + 1} className="world-map-label__origin">ORIGIN</text>}
                     </g>
                   )}
                 </motion.g>
@@ -292,9 +301,6 @@ export function MyWorldPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectedId ? travelWorldPlaces.find((place) => place.id === selectedId) ?? null : null;
   const selectedPhotos = selected ? getTravelPlacePhotos(selected) : [];
-  const countries = useMemo(() => new Set(travelWorldPlaces.map((place) => cn ? place.countryZh : place.countryEn)).size, [cn]);
-  const memories = useMemo(() => new Set(travelWorldPlaces.flatMap((place) => place.photoIds)).size, []);
-
   const selectPlace = (place: TravelWorldPlace) => setSelectedId(place.id);
   const closeMemory = () => setSelectedId(null);
 
@@ -314,11 +320,6 @@ export function MyWorldPage() {
           <p className="my-world-map-lead">
             {cn ? "世界没有变小，只是有一些地方，开始和我有关。" : <>The world didn’t get smaller.<br />Some places simply became part of my story.</>}
           </p>
-          <dl className="my-world-stats my-world-stats--map">
-            <div><dt>PLACES</dt><dd>{String(travelWorldPlaces.length).padStart(2, "0")}</dd></div>
-            <div><dt>COUNTRIES</dt><dd>{String(countries).padStart(2, "0")}</dd></div>
-            <div><dt>MEMORIES</dt><dd>{String(memories).padStart(2, "0")}</dd></div>
-          </dl>
           <Link href="/other-side" className="my-world-back">← {cn ? "返回另一面" : "Back to The Other Side"}</Link>
         </aside>
 
