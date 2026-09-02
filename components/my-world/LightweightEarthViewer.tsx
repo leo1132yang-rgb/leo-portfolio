@@ -16,14 +16,17 @@ const TEXTURES = {
 };
 
 const COUNTRY_LABELS = [
+  { en: "RUSSIA", zh: "俄罗斯", lat: 60.0, lng: 92.0 },
+  { en: "MONGOLIA", zh: "蒙古", lat: 46.8, lng: 103.8 },
   { en: "CHINA", zh: "中国", lat: 35.8, lng: 104.2 },
   { en: "JAPAN", zh: "日本", lat: 37.5, lng: 138.2 },
   { en: "THAILAND", zh: "泰国", lat: 15.8, lng: 101.0 },
   { en: "INDIA", zh: "印度", lat: 21.1, lng: 78.9 },
-  { en: "AUSTRALIA", zh: "澳大利亚", lat: -25.2, lng: 133.8 },
-  { en: "UNITED STATES", zh: "美国", lat: 39.4, lng: -98.5 },
+  { en: "MALAYSIA", zh: "马来西亚", lat: 4.2, lng: 102.0 },
   { en: "MALDIVES", zh: "马尔代夫", lat: 3.2, lng: 73.2 },
   { en: "INDONESIA", zh: "印尼", lat: -2.5, lng: 118.0 },
+  { en: "AUSTRALIA", zh: "澳大利亚", lat: -25.2, lng: 133.8 },
+  { en: "UNITED STATES", zh: "美国", lat: 39.4, lng: -98.5 },
 ];
 
 function latLngToVector3(lat: number, lng: number, radius = EARTH_RADIUS) {
@@ -42,11 +45,13 @@ function createLabelTexture(en: string, zh: string) {
   canvas.height = 92;
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "rgba(235,238,234,.64)";
+  ctx.shadowColor = "rgba(0,0,0,.62)";
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetY = 2;
+  ctx.fillStyle = "rgba(246,248,244,.82)";
   ctx.font = "500 24px Arial, sans-serif";
-  ctx.letterSpacing = "2px";
   ctx.fillText(en, 18, 34);
-  ctx.fillStyle = "rgba(235,238,234,.42)";
+  ctx.fillStyle = "rgba(246,248,244,.62)";
   ctx.font = "400 22px Arial, sans-serif";
   ctx.fillText(zh, 18, 66);
   const texture = new THREE.CanvasTexture(canvas);
@@ -132,10 +137,12 @@ function TravelDot({
 function TexturedEarth({
   selected,
   language,
+  interactionVersion,
   onSelect,
 }: {
   selected: TravelWorldPlace | null;
   language: "cn" | "en";
+  interactionVersion: number;
   onSelect: (place: TravelWorldPlace) => void;
 }) {
   const [colorMap, nightMap, bumpMap, boundaryMap] = useTexture([
@@ -175,6 +182,12 @@ function TexturedEarth({
     autoUntilRef.current = performance.now() + 4200;
   }, [selected]);
 
+  useEffect(() => {
+    if (interactionVersion > 0) {
+      autoUntilRef.current = performance.now() + 4200;
+    }
+  }, [interactionVersion]);
+
   useFrame((_, delta) => {
     const group = groupRef.current;
     if (!group) return;
@@ -197,22 +210,22 @@ function TexturedEarth({
         <meshStandardMaterial
           map={colorMap}
           bumpMap={bumpMap}
-          bumpScale={0.028}
+          bumpScale={0.018}
           emissiveMap={nightMap}
           emissive={new THREE.Color("#d6b46a")}
-          emissiveIntensity={0.06}
-          roughness={0.76}
-          metalness={0.03}
-          color="#7a8078"
+          emissiveIntensity={0.035}
+          roughness={0.54}
+          metalness={0.015}
+          color="#ffffff"
         />
       </mesh>
       <mesh>
         <sphereGeometry args={[EARTH_RADIUS + 0.006, 64, 64]} />
-        <meshBasicMaterial map={boundaryMap} transparent opacity={0.28} depthWrite={false} />
+        <meshBasicMaterial map={boundaryMap} transparent opacity={0.34} depthWrite={false} />
       </mesh>
       <mesh>
-        <sphereGeometry args={[EARTH_RADIUS + 0.032, 64, 64]} />
-        <meshBasicMaterial color="#7ca6b2" transparent opacity={0.075} blending={THREE.AdditiveBlending} side={THREE.BackSide} depthWrite={false} />
+        <sphereGeometry args={[EARTH_RADIUS + 0.046, 64, 64]} />
+        <meshBasicMaterial color="#b8e4ff" transparent opacity={0.13} blending={THREE.AdditiveBlending} side={THREE.BackSide} depthWrite={false} />
       </mesh>
       {labels.map((label) => (
         <VisibleSprite
@@ -232,11 +245,11 @@ function TexturedEarth({
 function EarthLights() {
   return (
     <>
-      <ambientLight intensity={0.55} />
-      <hemisphereLight color="#d7e4e3" groundColor="#050607" intensity={0.68} />
-      <directionalLight position={[-3.2, 2.6, 3.6]} intensity={2.2} color="#f1f2ed" />
-      <directionalLight position={[3.8, 0.8, -3.2]} intensity={0.85} color="#7aa1b4" />
-      <pointLight position={[-2.4, -1.8, 2.2]} intensity={0.55} color="#d6b46a" distance={5.4} />
+      <ambientLight intensity={0.82} />
+      <hemisphereLight color="#e9f6ff" groundColor="#121824" intensity={1.05} />
+      <directionalLight position={[-3.2, 2.8, 3.8]} intensity={2.65} color="#fff8ea" />
+      <directionalLight position={[3.8, 1.1, -3.2]} intensity={1.05} color="#9ed7ff" />
+      <pointLight position={[-2.4, -1.8, 2.2]} intensity={0.42} color="#d6b46a" distance={5.4} />
     </>
   );
 }
@@ -250,6 +263,9 @@ export default function LightweightEarthViewer({
   language: "cn" | "en";
   onSelect: (place: TravelWorldPlace) => void;
 }) {
+  const [interactionVersion, setInteractionVersion] = useState(0);
+  const noteInteraction = () => setInteractionVersion((value) => value + 1);
+
   return (
     <div className="earth-lightweight-stage" aria-label={language === "cn" ? "Leo 的轻量真实纹理地球" : "Leo's lightweight textured Earth"}>
       <Suspense
@@ -268,7 +284,7 @@ export default function LightweightEarthViewer({
         >
           <color attach="background" args={["#020405"]} />
           <EarthLights />
-          <TexturedEarth selected={selected} language={language} onSelect={onSelect} />
+          <TexturedEarth selected={selected} language={language} interactionVersion={interactionVersion} onSelect={onSelect} />
           <OrbitControls
             enablePan={false}
             enableDamping
@@ -277,6 +293,8 @@ export default function LightweightEarthViewer({
             zoomSpeed={0.55}
             minDistance={2.65}
             maxDistance={5.2}
+            onStart={noteInteraction}
+            onEnd={noteInteraction}
           />
         </Canvas>
       </Suspense>

@@ -235,14 +235,14 @@ function TravelMap({ onFocus }: WallDisplaysProps) {
         <sphereGeometry args={[.92, 48, 32]} />
         <meshStandardMaterial
           map={earthTexture}
-          color={hovered ? "#9fa69a" : "#777f78"}
-          roughness={.78}
-          metalness={.02}
+          color={hovered ? "#ffffff" : "#eef6ee"}
+          roughness={.58}
+          metalness={.015}
         />
       </mesh>
       <mesh position={[0, .12, .95]} scale={[1.025, 1.025, 1.025]} castShadow={false} receiveShadow={false}>
         <sphereGeometry args={[.92, 48, 32]} />
-        <meshBasicMaterial color="#84a5ad" transparent opacity={hovered ? .105 : .072} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
+        <meshBasicMaterial color="#b8e4ff" transparent opacity={hovered ? .16 : .11} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
       </mesh>
       <mesh position={[0, .12, .055]} rotation={[0, 0, 0]}>
         <circleGeometry args={[1.03, 64]} />
