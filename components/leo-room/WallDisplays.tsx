@@ -2,7 +2,7 @@
 
 import { Html, useTexture } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
@@ -217,19 +217,13 @@ function DigitalLab({ onFocus }: WallDisplaysProps) {
 
 function TravelMap({ onFocus }: WallDisplaysProps) {
   const { hovered, handlers } = useInteractiveWall(() => onFocus("travel"));
-  const shape = useMemo(() => {
-    const next = new THREE.Shape();
-    const points: Array<[number, number]> = [
-      [-2.8, -.35], [-2.45, .35], [-1.95, .78], [-1.2, .65], [-.72, 1.15], [.05, .92],
-      [.55, 1.35], [1.15, 1.02], [1.65, .5], [2.42, .18], [2.0, -.34], [2.12, -.88],
-      [1.42, -1.22], [.78, -1.08], [.24, -1.58], [-.32, -1.25], [-.9, -1.43], [-1.28, -.88],
-      [-1.95, -1.05], [-2.38, -.72],
-    ];
-    next.moveTo(points[0][0], points[0][1]);
-    points.slice(1).forEach(([x, y]) => next.lineTo(x, y));
-    next.closePath();
-    return next;
-  }, []);
+  const earthTexture = useTexture("/room/world/textures/earth-color-2k.webp") as THREE.Texture;
+
+  useEffect(() => {
+    earthTexture.colorSpace = THREE.SRGBColorSpace;
+    earthTexture.anisotropy = 4;
+    earthTexture.needsUpdate = true;
+  }, [earthTexture]);
 
   return (
     <group position={ROOM_LAYOUT.travel.position} scale={ROOM_LAYOUT.travel.scale} rotation={[0, -Math.PI / 2, 0]} {...handlers}>
@@ -237,20 +231,25 @@ function TravelMap({ onFocus }: WallDisplaysProps) {
         <boxGeometry args={[3.05, 3.18, .14]} />
         <meshStandardMaterial color="#765f45" roughness={.94} />
       </mesh>
-      <mesh position={[0, .05, .105]} scale={[.48, .48, .48]} castShadow>
-        <extrudeGeometry args={[shape, { depth: .14, bevelEnabled: true, bevelSize: .045, bevelThickness: .035, bevelSegments: 2 }]} />
-        <meshStandardMaterial color={hovered ? "#d6b98c" : "#b89a70"} roughness={.72} metalness={.02} />
+      <mesh position={[0, .12, .95]} rotation={[0, THREE.MathUtils.degToRad(-112), THREE.MathUtils.degToRad(-7)]} castShadow receiveShadow>
+        <sphereGeometry args={[.92, 48, 32]} />
+        <meshStandardMaterial
+          map={earthTexture}
+          color={hovered ? "#9fa69a" : "#777f78"}
+          roughness={.78}
+          metalness={.02}
+        />
       </mesh>
-      {[[-.72, .58], [.48, .34], [.82, -.62]].map(([x, y], index) => (
-        <group key={index} position={[x, y, .24]}>
-          <mesh><sphereGeometry args={[.055, 18, 18]} /><meshStandardMaterial color={index === 1 ? "#4fe3ff" : "#c96e4c"} roughness={.35} /></mesh>
-          <mesh position={[0, -.08, -.035]}><cylinderGeometry args={[.012, .012, .16, 10]} /><meshStandardMaterial color="#382c24" metalness={.35} /></mesh>
-        </group>
-      ))}
-      <mesh position={[-1.04, -1.22, .12]} rotation={[0, 0, -.07]}><boxGeometry args={[.68, .4, .035]} /><meshStandardMaterial color="#d3c6a8" roughness={.9} /></mesh>
-      <mesh position={[1.02, 1.18, .12]} rotation={[0, 0, .06]}><boxGeometry args={[.58, .36, .035]} /><meshStandardMaterial color="#c2b18d" roughness={.9} /></mesh>
+      <mesh position={[0, .12, .95]} scale={[1.025, 1.025, 1.025]} castShadow={false} receiveShadow={false}>
+        <sphereGeometry args={[.92, 48, 32]} />
+        <meshBasicMaterial color="#84a5ad" transparent opacity={hovered ? .105 : .072} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
+      </mesh>
+      <mesh position={[0, .12, .055]} rotation={[0, 0, 0]}>
+        <circleGeometry args={[1.03, 64]} />
+        <meshBasicMaterial color="#0b0c0b" transparent opacity={.26} depthWrite={false} />
+      </mesh>
       <Html transform position={[-1.18, 1.3, .15]} distanceFactor={.78} style={{ pointerEvents: "none" }}>
-        <div className="room-travel-label"><b>PLACES I&apos;VE BEEN</b><span>CHINA TRAVEL MAP</span></div>
+        <div className="room-travel-label"><b>MY WORLD</b><span>我的世界</span></div>
       </Html>
     </group>
   );
