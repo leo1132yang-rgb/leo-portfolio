@@ -8,7 +8,7 @@ import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage } from "@/components/LanguageProvider";
 import { getTravelPlacePhotos, travelWorldPlaces, type TravelWorldPlace } from "@/data/travelWorld";
 
-const LightweightEarthViewer = dynamic(() => import("@/components/my-world/LightweightEarthViewer"), {
+const OriginkitViewer = dynamic(() => import("@/components/my-world/OriginkitViewer"), {
   ssr: false,
   loading: () => (
     <div className="earth-lightweight-stage">
@@ -131,7 +131,7 @@ export function MyWorldPage() {
         </aside>
 
         <section className="my-world-earth-lite-panel">
-          <LightweightEarthViewer selected={selected} language={language} onSelect={(place) => setSelectedId(place.id)} />
+          <OriginkitViewer onSelect={(place) => setSelectedId(place.id)} />
           <div className="my-world-map-hint">
             <span>{cn ? "点击亮点，查看记忆" : "TAP A PLACE TO EXPLORE"}</span>
           </div>

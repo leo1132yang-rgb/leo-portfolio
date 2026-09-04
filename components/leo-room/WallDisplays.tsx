@@ -217,7 +217,7 @@ function DigitalLab({ onFocus }: WallDisplaysProps) {
 
 function TravelMap({ onFocus }: WallDisplaysProps) {
   const { hovered, handlers } = useInteractiveWall(() => onFocus("travel"));
-  const earthTexture = useTexture("/room/world/textures/earth-color-2k.webp") as THREE.Texture;
+  const earthTexture = useTexture("/room/world/originkit-preview.webp") as THREE.Texture;
 
   useEffect(() => {
     earthTexture.colorSpace = THREE.SRGBColorSpace;
@@ -231,22 +231,9 @@ function TravelMap({ onFocus }: WallDisplaysProps) {
         <boxGeometry args={[3.05, 3.18, .14]} />
         <meshStandardMaterial color="#765f45" roughness={.94} />
       </mesh>
-      <mesh position={[0, .12, .95]} rotation={[0, THREE.MathUtils.degToRad(-112), THREE.MathUtils.degToRad(-7)]} castShadow receiveShadow>
-        <sphereGeometry args={[.92, 48, 32]} />
-        <meshStandardMaterial
-          map={earthTexture}
-          color={hovered ? "#ffffff" : "#eef6ee"}
-          roughness={.58}
-          metalness={.015}
-        />
-      </mesh>
-      <mesh position={[0, .12, .95]} scale={[1.025, 1.025, 1.025]} castShadow={false} receiveShadow={false}>
-        <sphereGeometry args={[.92, 48, 32]} />
-        <meshBasicMaterial color="#b8e4ff" transparent opacity={hovered ? .16 : .11} blending={THREE.AdditiveBlending} depthWrite={false} side={THREE.BackSide} />
-      </mesh>
-      <mesh position={[0, .12, .055]} rotation={[0, 0, 0]}>
-        <circleGeometry args={[1.03, 64]} />
-        <meshBasicMaterial color="#0b0c0b" transparent opacity={.26} depthWrite={false} />
+      <mesh position={[0, .02, .085]}>
+        <planeGeometry args={[2.32, 2.32]} />
+        <meshBasicMaterial map={earthTexture} toneMapped={false} color={hovered ? "#ffffff" : "#e6e1d8"} />
       </mesh>
       <Html transform position={[-1.18, 1.3, .15]} distanceFactor={.78} style={{ pointerEvents: "none" }}>
         <div className="room-travel-label"><b>MY WORLD</b><span>我的世界</span></div>

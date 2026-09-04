@@ -12,7 +12,7 @@ const textures = [
   "/room/leo-cosmic-galaxy.png",
   "/room/leo-central-console-desk.webp",
   "/room/childhood-wall/childhood-entry.png",
-  "/room/world/textures/earth-color-2k.webp", // Existing small wall preview only.
+  "/room/world/originkit-preview.webp", // Static wall preview; no Globe/data initialization.
 ] as const;
 
 export function preloadRoomAssets(retry = false) {
