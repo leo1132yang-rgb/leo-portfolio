@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CareerProfile } from "@/components/CareerProfile";
+import { CareerProfile } from "@/components/ProfileFilmstrip";
 
 export const metadata: Metadata = {
   title: "个人履历｜Leo 李阳",
