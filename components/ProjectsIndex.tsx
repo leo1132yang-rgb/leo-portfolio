@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { InnerPage } from "@/components/layout/InnerPage";
-import { ProjectTiltCard } from "@/components/projects/ProjectTiltCard";
+import "./projects/ProjectCardGlare.css";
 
 type Copy = { cn: string; en: string };
 type FilterId = "all" | "planning" | "design" | "visual" | "writing";
@@ -95,10 +95,10 @@ const projects: ProjectCategory[] = [
 
 function ProjectCard({ project, cn }: { project: ProjectCategory; cn: boolean }) {
   return (
-    <ProjectTiltCard className="projects-gallery__tilt">
+    <div className="project-tilt-card projects-gallery__tilt"><div className="project-tilt-card__inner">
       <Link href={project.href} className="projects-gallery__card" aria-label={cn ? project.title.cn : project.title.en}>
         <div className="projects-gallery__card-surface" aria-hidden="true" />
-        <div className="projects-gallery__media" style={{ transform: "translateZ(20px)" }}>
+        <div className="projects-gallery__media">
           <img
             src={project.image}
             alt=""
@@ -118,7 +118,7 @@ function ProjectCard({ project, cn }: { project: ProjectCategory; cn: boolean })
           <span className="projects-gallery__arrow" aria-hidden="true">→</span>
         </div>
       </Link>
-    </ProjectTiltCard>
+    </div></div>
   );
 }
 

@@ -1,0 +1,26 @@
+.ripple-distortion {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #090d12;
+  background-position: center;
+  background-size: cover;
+}
+
+.ripple-distortion::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  filter: grayscale(var(--ripple-grayscale, 1));
+  pointer-events: none;
+}
+
+.ripple-distortion > canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}

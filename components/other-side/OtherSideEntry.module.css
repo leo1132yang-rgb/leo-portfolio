@@ -1,0 +1,48 @@
+.gate { min-height: 100dvh; background: #090d12; }
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  height: 100svh;
+  height: 100dvh;
+  width: 100%;
+  min-height: 360px;
+  background: #090d12;
+  opacity: 1;
+  transition: opacity 400ms ease;
+}
+.leaving { opacity: 0; pointer-events: none; }
+.enter {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: calc(95px + env(safe-area-inset-top)) 24px calc(100px + env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(5, 8, 12, .25), rgba(5, 8, 12, .42));
+  color: #ede9df;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.enter:focus-visible { outline: 1px solid #bfa883; outline-offset: -16px; }
+.title { font-size: clamp(34px, 6vw, 90px); font-weight: 300; letter-spacing: .15em; line-height: 1.2; }
+.subtitle { margin-top: 22px; font-family: "Songti SC", SimSun, serif; font-size: clamp(20px, 2.2vw, 30px); letter-spacing: .4em; }
+.prompt { margin-top: 60px; font-size: 12px; letter-spacing: .15em; color: #c4b9a5; }
+.prompt > span { display: inline-block; margin-left: 12px; transition: transform 200ms ease; }
+.enter:hover .prompt > span { transform: translateX(4px); }
+.loading { min-height: 100dvh; display: grid; place-items: center; background: #090d12; color: #c4b9a5; font-size: 11px; letter-spacing: .2em; }
+@media (max-width: 767px) {
+  .title { font-size: clamp(28px, 7.5vw, 43px); letter-spacing: .12em; }
+  .subtitle { margin-top: 18px; font-size: 21px; }
+  .prompt { margin-top: 46px; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro, .prompt > span { transition: none; }
+}

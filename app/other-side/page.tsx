@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OtherSide } from "@/components/OtherSide";
+import { OtherSideEntry } from "@/components/other-side/OtherSideEntry";
 
 export const metadata: Metadata = {
   title: "另一面｜Leo 李阳",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function OtherSidePage() {
-  return <OtherSide />;
+  return <OtherSideEntry />;
 }

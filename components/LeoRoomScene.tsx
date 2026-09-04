@@ -2,7 +2,7 @@
 
 import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
 import { CameraControls, ContactShadows, type CameraControlsImpl } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
@@ -458,7 +458,18 @@ function EmptyRoom({
   );
 }
 
+function RoomRendered({ onReady }: { onReady?: () => void }) {
+  useEffect(() => {
+    if (!onReady) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => { second = requestAnimationFrame(onReady); });
+    return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); };
+  }, [onReady]);
+  return null;
+}
+
 export function LeoRoomScene({
+  onReady,
   activeDeskItem,
   onDeskItemSelect,
   focusRequest,
@@ -469,6 +480,7 @@ export function LeoRoomScene({
   onPhotoSelect,
   photoLightboxEnabled,
 }: {
+  onReady?: () => void;
   activeDeskItem: DeskSelection | null;
   onDeskItemSelect: (item: DeskSelection) => void;
   focusRequest: RoomFocusRequest | null;
@@ -494,6 +506,7 @@ export function LeoRoomScene({
         camera.lookAt(...CAMERA_TARGET);
       }}
     >
+      <Suspense fallback={null}>
       <EmptyRoom
         activeDeskItem={activeDeskItem}
         onDeskItemSelect={onDeskItemSelect}
@@ -505,6 +518,8 @@ export function LeoRoomScene({
         onPhotoSelect={onPhotoSelect}
         photoLightboxEnabled={photoLightboxEnabled}
       />
+      <RoomRendered onReady={onReady} />
+      </Suspense>
     </Canvas>
   );
 }

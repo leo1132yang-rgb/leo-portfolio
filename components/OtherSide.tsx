@@ -59,7 +59,7 @@ type ActiveRoomTarget = "desk" | "childhood" | "gallery" | null;
 type RoomMode = "explore" | "reading" | "photoOpen";
 type RoomFocusRequest = { id: LeoRoomFocusId | "overview"; nonce: number };
 
-export function OtherSide() {
+export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
   const { language } = useLanguage();
   const { switchTrack } = useGlobalAudio();
   const router = useRouter();
@@ -337,6 +337,7 @@ export function OtherSide() {
       </header>
       <div className="leo-room__canvas">
         <LeoRoomScene
+          onReady={onRoomReady}
           focusRequest={focusRequest}
           controlsEnabled={roomMode === "explore"}
           onWallFocus={focusWall}
