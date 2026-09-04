@@ -8,6 +8,8 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { CosmicBackdrop, WindowCosmicExterior } from "@/components/leo-room/CosmicBackdrop";
 import { CentralWorkspace } from "@/components/leo-room/CentralWorkspace";
+import { DeskFocusController, DeskInteractionScope } from "@/components/leo-room/DeskInteractiveItem";
+import type { DeskSelection } from "@/data/deskItems";
 import { WallDisplays } from "@/components/leo-room/WallDisplays";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import {
@@ -390,6 +392,8 @@ function RoomCameraControls({
 }
 
 function EmptyRoom({
+  activeDeskItem,
+  onDeskItemSelect,
   focusRequest,
   controlsEnabled,
   onWallFocus,
@@ -398,6 +402,8 @@ function EmptyRoom({
   onPhotoSelect,
   photoLightboxEnabled,
 }: {
+  activeDeskItem: DeskSelection | null;
+  onDeskItemSelect: (item: DeskSelection) => void;
   focusRequest: RoomFocusRequest | null;
   controlsEnabled: boolean;
   onWallFocus: (id: LeoRoomFocusId) => void;
@@ -434,7 +440,9 @@ function EmptyRoom({
       <CityWindow />
       <RoundRug />
       <group {...deskTapHandlers}>
-        <CentralWorkspace />
+        <DeskInteractionScope onSelect={onDeskItemSelect} enabled={controlsEnabled}>
+          <CentralWorkspace />
+        </DeskInteractionScope>
       </group>
       <WallDisplays
         onFocus={onWallFocus}
@@ -445,11 +453,14 @@ function EmptyRoom({
       <RoomLighting />
       <ContactShadows position={[0, .018, .3]} scale={ROOM.width * .82} opacity={.32} blur={2.3} far={ROOM.height + 1} resolution={512} color="#1c120d" />
       <RoomCameraControls focusRequest={focusRequest} controlsEnabled={controlsEnabled} />
+      <DeskFocusController selection={activeDeskItem} focusToken={focusRequest} />
     </>
   );
 }
 
 export function LeoRoomScene({
+  activeDeskItem,
+  onDeskItemSelect,
   focusRequest,
   controlsEnabled = true,
   onWallFocus,
@@ -458,6 +469,8 @@ export function LeoRoomScene({
   onPhotoSelect,
   photoLightboxEnabled,
 }: {
+  activeDeskItem: DeskSelection | null;
+  onDeskItemSelect: (item: DeskSelection) => void;
   focusRequest: RoomFocusRequest | null;
   controlsEnabled?: boolean;
   onWallFocus: (id: LeoRoomFocusId) => void;
@@ -482,6 +495,8 @@ export function LeoRoomScene({
       }}
     >
       <EmptyRoom
+        activeDeskItem={activeDeskItem}
+        onDeskItemSelect={onDeskItemSelect}
         focusRequest={focusRequest}
         controlsEnabled={controlsEnabled}
         onWallFocus={onWallFocus}

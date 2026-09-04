@@ -1,9 +1,18 @@
 "use client";
 
-import { RoundedBox, useGLTF, useTexture } from "@react-three/drei";
-import { useEffect, useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { RoundedBox as DreiRoundedBox, useGLTF, useTexture } from "@react-three/drei";
+import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentProps, type RefObject } from "react";
 import * as THREE from "three";
 import { CENTRAL_WORKSPACE, DESK_OBJECT_DIMENSIONS } from "@/data/leoRoomWorkspace";
+import { DeskInteractiveItem } from "./DeskInteractiveItem";
+import { DetailedFujiCamera, DeskCables, DeskFoliage, Keycaps, WatchFace } from "./DeskDetails";
+import { useThree } from "@react-three/fiber";
+
+// Thin devices need a bevel smaller than their thinnest dimension. Larger
+// radii create inverted extrusion walls in Drei's RoundedBox geometry.
+function RoundedBox({ args = [1, 1, 1], radius = .025, ...props }: ComponentProps<typeof DreiRoundedBox>) {
+  return <DreiRoundedBox {...props} args={args} radius={Math.min(radius, Math.min(...args.map(value => value ?? 1)) * .45)} bevelSegments={2} />;
+}
 
 type InteractiveMeta = {
   interactiveId: string;
@@ -53,14 +62,14 @@ const DESKTOP_PC_TRANSFORM = (() => {
   const scaledWidth = DESKTOP_PC_BASE_SIZE.width * scale;
   const scaledHeight = DESKTOP_PC_BASE_SIZE.height * scale;
   const rightLegInnerEdge = desk.width / 2 - .18 - .14 / 2;
-  const railFrontEdge = desk.depth * .8 / 2;
+  const railFrontEdge = -desk.depth * .38 + .04;
   const scaledDepth = DESKTOP_PC_BASE_SIZE.depth * scale;
 
   return {
     position: [
       rightLegInnerEdge - sideClearance - scaledWidth / 2,
       scaledHeight / 2,
-      railFrontEdge + railClearance + scaledDepth / 2,
+      Math.max(desk.depth * .08, railFrontEdge + railClearance + scaledDepth / 2),
     ] as [number, number, number],
     rotation: [0, 0, 0] as [number, number, number],
     scale,
@@ -74,25 +83,25 @@ function useGeneratedTexture(factory: () => THREE.Texture) {
 }
 
 function createWoodTexture() {
-  const width = 256;
-  const height = 128;
+  const width = 512;
+  const height = 256;
   const data = new Uint8Array(width * height * 4);
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
       const i = (y * width + x) * 4;
-      const broad = Math.sin(x * .095 + Math.sin(y * .14) * 2.4) * 17;
-      const fine = Math.sin(x * .57 + y * .09) * 4;
-      const knot = Math.sin(Math.hypot(x - 74, (y - 68) * 2) * .22) * 5;
-      data[i] = 103 + broad + fine + knot;
-      data[i + 1] = 53 + broad * .43 + fine * .32;
-      data[i + 2] = 27 + broad * .18;
+      const broad = Math.sin(y * .13 + Math.sin(x * .009) * 2.4) * 12;
+      const fine = Math.sin(y * 1.2 + Math.sin(x * .035) * 1.9) * 7;
+      const knot = Math.sin(Math.hypot((x - 174) * .2, y - 128) * .37) * 4;
+      data[i] = 91 + broad + fine + knot;
+      data[i + 1] = 57 + broad * .43 + fine * .32;
+      data[i + 2] = 37 + broad * .18;
       data[i + 3] = 255;
     }
   }
   const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(3.6, 1.25);
+  texture.repeat.set(1.6, 1.2);
   texture.anisotropy = 8;
   texture.needsUpdate = true;
   return texture;
@@ -208,7 +217,7 @@ function createFujiLabelTexture() {
 }
 
 function WoodMaterial({ texture }: { texture: THREE.Texture }) {
-  return <meshStandardMaterial map={texture} color="#b06a36" roughness={.62} metalness={.025} />;
+  return <meshStandardMaterial map={texture} color="#b8aaa0" roughness={.68} metalness={.018} />;
 }
 
 function OfficeDesk({ wood }: { wood: THREE.Texture }) {
@@ -229,7 +238,7 @@ function OfficeDesk({ wood }: { wood: THREE.Texture }) {
       </RoundedBox>
       {[[-desk.width / 2 + .18, 0], [desk.width / 2 - .18, 0], [desk.width / 2 - .18, -desk.depth * .71]].map(([x, z], index) => (
         <RoundedBox key={index} args={[.14, legHeight, .14]} radius={.028} smoothness={3} position={[x, floor + legHeight / 2, z]} castShadow receiveShadow>
-          <meshStandardMaterial color="#2a1b14" roughness={.58} metalness={.18} />
+          <meshStandardMaterial color="#252b2e" roughness={.43} metalness={.72} />
         </RoundedBox>
       ))}
       <RoundedBox args={[.92, legHeight * .91, desk.depth * .72]} radius={.045} smoothness={4} position={[leftDrawerX, floor + legHeight * .455, .05]} castShadow receiveShadow>
@@ -241,7 +250,11 @@ function OfficeDesk({ wood }: { wood: THREE.Texture }) {
           <mesh position={[0, 0, .028]} castShadow><boxGeometry args={[.26, .035, .035]} /><meshStandardMaterial color="#151719" roughness={.35} metalness={.75} /></mesh>
         </group>
       ))}
-      <mesh position={[0, floor + .12, 0]} receiveShadow><boxGeometry args={[desk.width * .91, .04, desk.depth * .8]} /><meshStandardMaterial color="#2b1a12" roughness={.82} /></mesh>
+      <RoundedBox args={[desk.width * .9, .1, .08]} radius={.012} smoothness={2} position={[0, topY - .18, -desk.depth * .38]} castShadow><meshStandardMaterial color="#252b2e" roughness={.52} metalness={.7} /></RoundedBox>
+      <RoundedBox args={[desk.width * .88, .08, .18]} radius={.012} smoothness={2} position={[0, topY - .24, -desk.depth * .43]}><meshStandardMaterial color="#151b1e" roughness={.7} metalness={.5} /></RoundedBox>
+      <mesh position={[0, topY + desk.topThickness / 2 + .001, -desk.depth * .4]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[.038,.051,32]} /><meshStandardMaterial color="#292e31" roughness={.5} metalness={.65} /></mesh>
+      <mesh position={[0, topY + desk.topThickness / 2 + .0008, -desk.depth * .4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[.038,24]} /><meshStandardMaterial color="#080d0f" roughness={.9} /></mesh>
+      {[-1,1].map(side => <RoundedBox key={side} args={[.23,.045,desk.depth*.74]} radius={.016} smoothness={2} position={[side*(desk.width/2-.18),floor+.024,0]} castShadow><meshStandardMaterial color="#22282b" roughness={.48} metalness={.65} /></RoundedBox>)}
     </group>
   );
 }
@@ -286,9 +299,10 @@ function OfficeChair() {
 }
 
 function CentralMonitor() {
-  const texture = useTexture("/room/leo-central-console.png");
+  const texture = useTexture("/room/leo-central-console-desk.webp");
   const { monitor, desk } = CENTRAL_WORKSPACE;
   const meta = META.monitor;
+  const surfaceY = .14 + desk.height + desk.topThickness / 2;
 
   useEffect(() => {
     const image = texture.image as { width?: number; height?: number } | undefined;
@@ -313,52 +327,47 @@ function CentralMonitor() {
   }, [monitor.height, monitor.width, texture]);
 
   return (
-    <group position={[0, 0, monitor.z]} userData={meta}>
-      <RoundedBox args={[monitor.width + .12, monitor.height + .12, monitor.depth]} radius={.07} smoothness={5} position={[0, monitor.centerY, 0]} castShadow>
+    <DeskInteractiveItem position={[0, 0, monitor.z]} meta={meta}>
+      <RoundedBox args={[monitor.width + .036, monitor.height + .046, monitor.depth]} radius={.018} smoothness={4} position={[0, monitor.centerY, 0]} castShadow>
         <meshStandardMaterial color="#090b0f" roughness={.2} metalness={.55} />
       </RoundedBox>
       <mesh position={[0, monitor.centerY, monitor.depth / 2 + .004]}>
         <planeGeometry args={[monitor.width, monitor.height]} />
         <meshStandardMaterial map={texture} emissiveMap={texture} emissive="#ffffff" emissiveIntensity={.28} roughness={.13} metalness={.08} toneMapped={false} />
       </mesh>
-      <RoundedBox args={[.14, .48, .1]} radius={.035} smoothness={4} position={[0, desk.height + .35, -.015]} castShadow>
+      <RoundedBox args={[monitor.width * .58, monitor.height * .55, .045]} radius={.025} smoothness={3} position={[0, monitor.centerY - .05, -.044]} castShadow><meshStandardMaterial color="#191e22" roughness={.61} metalness={.25} /></RoundedBox>
+      <RoundedBox args={[.095, .46, .075]} radius={.018} smoothness={3} position={[0, surfaceY + .265, -.015]} castShadow>
         <meshStandardMaterial color="#15181b" roughness={.32} metalness={.68} />
       </RoundedBox>
-      <RoundedBox args={[.68, .065, .34]} radius={.045} smoothness={4} position={[0, desk.height + .13, .02]} castShadow receiveShadow>
+      <RoundedBox args={[.48, .055, .28]} radius={.025} smoothness={3} position={[0, surfaceY + .0275, .02]} castShadow receiveShadow>
         <meshStandardMaterial color="#141619" roughness={.35} metalness={.66} />
       </RoundedBox>
       <rectAreaLight position={[0, monitor.centerY, monitor.depth + .24]} rotation={[0, 0, 0]} color="#6ecfff" intensity={1.15} width={monitor.width * .78} height={monitor.height * .72} />
-    </group>
+    </DeskInteractiveItem>
   );
 }
 
 function DeskLamp({ surfaceY }: { surfaceY: number }) {
   const meta = META.lamp;
+  const { size } = useThree();
   return (
-    <group position={[-CENTRAL_WORKSPACE.desk.width * .41, surfaceY, -.18]} userData={meta}>
+    <DeskInteractiveItem position={[CENTRAL_WORKSPACE.desk.width * .37, surfaceY, -CENTRAL_WORKSPACE.desk.depth * .25]} meta={meta}>
       <mesh position={[0, .045, 0]} castShadow><cylinderGeometry args={[.25, .27, .08, 32]} /><meshStandardMaterial color="#101214" roughness={.26} metalness={.75} /></mesh>
       <mesh position={[0, .57, 0]} castShadow><cylinderGeometry args={[.027, .035, 1.06, 16]} /><meshStandardMaterial color="#151719" roughness={.28} metalness={.75} /></mesh>
       <mesh position={[0, 1.04, 0]} castShadow><cylinderGeometry args={[.2, .34, .25, 32, 1, true]} /><meshStandardMaterial color="#151617" roughness={.29} metalness={.7} side={THREE.DoubleSide} /></mesh>
       <mesh position={[0, .93, 0]}><sphereGeometry args={[.075, 18, 14]} /><meshStandardMaterial color="#ffd39b" emissive="#ffb666" emissiveIntensity={3.2} /></mesh>
-      <pointLight position={[0, .88, .02]} color="#ffb35f" intensity={2.1} distance={2.7} decay={2} castShadow shadow-mapSize-width={256} shadow-mapSize-height={256} />
-    </group>
+      <pointLight position={[0, .88, .02]} color="#ffb35f" intensity={2.1} distance={2.7} decay={2} castShadow={size.width >= 768} shadow-mapSize-width={256} shadow-mapSize-height={256} />
+    </DeskInteractiveItem>
   );
 }
 
 function DeskPlant({ position, scale = 1, meta }: { position: [number, number, number]; scale?: number; meta: InteractiveMeta }) {
   return (
-    <group position={position} scale={scale} userData={meta}>
+    <DeskInteractiveItem position={position} scale={scale} meta={meta}>
       <mesh castShadow><cylinderGeometry args={[.17, .14, .27, 24]} /><meshStandardMaterial color="#74604a" roughness={.9} /></mesh>
-      {Array.from({ length: 11 }, (_, index) => {
-        const angle = index * 2.4;
-        return (
-          <mesh key={index} position={[Math.sin(angle) * .055, .24 + (index % 3) * .035, Math.cos(angle) * .055]} rotation={[.35 + (index % 3) * .13, angle, .45]} castShadow>
-            <coneGeometry args={[.065, .4, 8]} />
-            <meshStandardMaterial color={index % 2 ? "#54713d" : "#6d8a48"} roughness={.78} />
-          </mesh>
-        );
-      })}
-    </group>
+      <mesh position={[0,.136,0]} rotation={[-Math.PI/2,0,0]}><circleGeometry args={[.155,24]} /><meshStandardMaterial color="#251e17" roughness={1} /></mesh>
+      <DeskFoliage />
+    </DeskInteractiveItem>
   );
 }
 
@@ -366,22 +375,16 @@ function KeyboardAndMouse({ surfaceY }: { surfaceY: number }) {
   const { keyboard, mouse } = DESK_OBJECT_DIMENSIONS;
   return (
     <>
-      <group position={[-.05, surfaceY + keyboard.height / 2, .28]} userData={META.keyboard}>
+      <DeskInteractiveItem position={[-.05, surfaceY + keyboard.height / 2 + .008, .28]} meta={META.keyboard}>
         <RoundedBox args={[keyboard.width, keyboard.height, keyboard.depth]} radius={.009} smoothness={4} castShadow>
           <meshStandardMaterial color="#101214" roughness={.42} />
         </RoundedBox>
-        {Array.from({ length: 65 }, (_, index) => {
-          const column = index % 14;
-          const row = Math.floor(index / 14);
-          const keyWidth = keyboard.width / 15.8;
-          const keyDepth = keyboard.depth / 6.2;
-          return <mesh key={index} position={[-keyboard.width * .425 + column * keyboard.width / 15, keyboard.height * .57, -keyboard.depth * .34 + row * keyboard.depth / 5.6]} castShadow><boxGeometry args={[keyWidth, .006, keyDepth]} /><meshStandardMaterial color="#272a2d" roughness={.55} /></mesh>;
-        })}
-      </group>
-      <group position={[.37, surfaceY + mouse.height / 2, .28]} userData={META.mouse}>
+        <Keycaps />
+      </DeskInteractiveItem>
+      <DeskInteractiveItem position={[.28, surfaceY + mouse.height / 2 + .008, .28]} meta={META.mouse}>
         <mesh castShadow scale={[mouse.width / 2, mouse.height / 2, mouse.length / 2]}><sphereGeometry args={[1, 20, 14]} /><meshStandardMaterial color="#17191c" roughness={.4} /></mesh>
         <mesh position={[0, mouse.height * .45, -mouse.length * .16]}><boxGeometry args={[.008, .004, .026]} /><meshStandardMaterial color="#7b838b" roughness={.5} /></mesh>
-      </group>
+      </DeskInteractiveItem>
     </>
   );
 }
@@ -389,13 +392,13 @@ function KeyboardAndMouse({ surfaceY }: { surfaceY: number }) {
 function Phone({ surfaceY }: { surfaceY: number }) {
   const phone = DESK_OBJECT_DIMENSIONS.phone;
   return (
-    <group position={[-1.82, surfaceY + phone.height * .53, .24]} rotation={[-.22, 0, 0]} userData={META.phone}>
+    <DeskInteractiveItem position={[-CENTRAL_WORKSPACE.desk.width * .18, surfaceY + phone.height * .64, -.01]} rotation={[-.22, 0, 0]} meta={META.phone}>
       <RoundedBox args={[phone.width, phone.height, phone.depth]} radius={.012} smoothness={5} castShadow>
         <meshStandardMaterial color="#0c0e12" roughness={.22} metalness={.32} />
       </RoundedBox>
       <mesh position={[0, 0, phone.depth / 2 + .001]}><planeGeometry args={[phone.width * .88, phone.height * .89]} /><meshStandardMaterial color="#07172d" emissive="#124a72" emissiveIntensity={.38} roughness={.18} /></mesh>
       <RoundedBox args={[.11, .018, .075]} radius={.009} smoothness={4} position={[0, -phone.height * .48, -.035]} castShadow><meshStandardMaterial color="#121416" roughness={.34} metalness={.6} /></RoundedBox>
-    </group>
+    </DeskInteractiveItem>
   );
 }
 
@@ -404,15 +407,18 @@ function NotebookAndWatch({ surfaceY }: { surfaceY: number }) {
   const dialRadius = watch.dialDiameter / 2;
   return (
     <>
-      <group position={[-1.55, surfaceY + notebook.height / 2, .53]} rotation={[0, .1, 0]} userData={META.notebook}>
+      <DeskInteractiveItem position={[-CENTRAL_WORKSPACE.desk.width * .19, surfaceY + notebook.height / 2, .38]} rotation={[0, .1, 0]} meta={META.notebook}>
         <RoundedBox args={[notebook.width, notebook.height, notebook.depth]} radius={.007} smoothness={4} castShadow><meshStandardMaterial color="#211d1a" roughness={.78} /></RoundedBox>
         <mesh position={[.01, notebook.height * .72, .006]} rotation={[-Math.PI / 2, 0, -.12]} castShadow><cylinderGeometry args={[.0035, .0035, .145, 10]} /><meshStandardMaterial color="#0f1113" roughness={.35} metalness={.5} /></mesh>
-      </group>
-      <group position={[-1.32, surfaceY + .012, .56]} rotation={[-Math.PI / 2, 0, -.1]} userData={META.watch}>
+        <mesh position={[.002, 0, .003]}><boxGeometry args={[notebook.width - .008, notebook.height * .55, notebook.depth - .004]} /><meshStandardMaterial color="#c8bfa7" roughness={.93} /></mesh>
+        {[-1, 1].map((side) => <mesh key={side} position={[0, side * notebook.height * .45, 0]}><boxGeometry args={[notebook.width, .002, notebook.depth]} /><meshStandardMaterial color="#302921" roughness={.78} /></mesh>)}
+      </DeskInteractiveItem>
+      <DeskInteractiveItem position={[CENTRAL_WORKSPACE.desk.width * .2, surfaceY + .0036, .42]} rotation={[-Math.PI / 2, 0, -.1]} meta={META.watch}>
         <mesh castShadow><torusGeometry args={[dialRadius * .78, dialRadius * .18, 10, 24]} /><meshStandardMaterial color="#131619" roughness={.3} metalness={.68} /></mesh>
         <mesh position={[0, 0, .001]}><circleGeometry args={[dialRadius * .7, 24]} /><meshStandardMaterial color="#27313b" roughness={.18} metalness={.45} /></mesh>
-        <mesh position={[0, .061, 0]}><boxGeometry args={[.018, .085, .005]} /><meshStandardMaterial color="#2b2725" roughness={.72} /></mesh>
-      </group>
+        {[-1, 1].map((side) => <mesh key={side} position={[0, side * .053, 0]}><boxGeometry args={[.018, .073, .005]} /><meshStandardMaterial color="#2b2725" roughness={.72} /></mesh>)}
+        <WatchFace radius={dialRadius * .66} />
+      </DeskInteractiveItem>
     </>
   );
 }
@@ -421,19 +427,28 @@ function CoffeeCup({ surfaceY }: { surfaceY: number }) {
   const cup = DESK_OBJECT_DIMENSIONS.coffeeCup;
   const radius = cup.diameter / 2;
   return (
-    <group position={[1.18, surfaceY, .1]} userData={META.coffee}>
+    <DeskInteractiveItem position={[CENTRAL_WORKSPACE.desk.width * .18, surfaceY, .17]} meta={META.coffee}>
       <mesh position={[0, .0025, 0]} castShadow><cylinderGeometry args={[radius * 1.15, radius * 1.15, .005, 28]} /><meshStandardMaterial color="#b79a73" roughness={.74} /></mesh>
       <mesh position={[0, cup.height / 2 + .005, 0]} castShadow><cylinderGeometry args={[radius * .86, radius, cup.height, 32]} /><meshStandardMaterial color="#e8e1d5" roughness={.5} /></mesh>
       <mesh position={[0, cup.height + .006, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[radius * .82, 32]} /><meshStandardMaterial color="#25140b" roughness={.88} /></mesh>
-      <mesh position={[radius * 1.02, cup.height * .55, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[radius * .42, radius * .12, 10, 22, Math.PI * 1.45]} /><meshStandardMaterial color="#e8e1d5" roughness={.5} /></mesh>
-    </group>
+      <mesh position={[radius * 1.02, cup.height * .55, 0]} castShadow><torusGeometry args={[radius * .42, radius * .12, 10, 22, Math.PI * 1.45]} /><meshStandardMaterial color="#e8e1d5" roughness={.5} /></mesh>
+      <mesh position={[0, cup.height + .005, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[radius * .84, .003, 8, 32]} /><meshStandardMaterial color="#eee8dc" roughness={.24} /></mesh>
+    </DeskInteractiveItem>
   );
 }
 
 export function RuntianBottle({ surfaceY }: { surfaceY: number }) {
   const bottle = DESK_OBJECT_DIMENSIONS.runtianBottle;
   const gltf = useGLTF(RUNTIAN_BOTTLE_MODEL);
-  const model = useMemo(() => gltf.scene.clone(true), [gltf.scene]);
+  const model = useMemo(() => {
+    const clone = gltf.scene.clone(true);
+    clone.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return;
+      object.castShadow = true;
+      object.receiveShadow = true;
+    });
+    return clone;
+  }, [gltf.scene]);
   const transform = useMemo(() => {
     model.updateWorldMatrix(true, true);
     const bounds = new THREE.Box3().setFromObject(model);
@@ -447,58 +462,36 @@ export function RuntianBottle({ surfaceY }: { surfaceY: number }) {
     };
   }, [bottle.height, model]);
 
-  useLayoutEffect(() => {
-    model.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-
-      object.castShadow = true;
-      object.receiveShadow = true;
-      object.material = Array.isArray(object.material)
-        ? object.material.map((material) => material.clone())
-        : object.material.clone();
-    });
-  }, [model]);
-
   return (
-    <group position={[1.43, surfaceY, -.02]} rotation={[0, -.08, 0]} userData={META.runtian}>
-      <primitive object={model} position={transform.position} scale={transform.scale} />
-    </group>
+    <DeskInteractiveItem position={[CENTRAL_WORKSPACE.desk.width * .245, surfaceY, -.01]} rotation={[0, -.08, 0]} meta={META.runtian}>
+      <primitive object={model} position={transform.position} scale={transform.scale} dispose={null} />
+    </DeskInteractiveItem>
   );
 }
 
 useGLTF.preload(RUNTIAN_BOTTLE_MODEL);
 
 export function FujiXT5({ surfaceY }: { surfaceY: number }) {
-  const label = useGeneratedTexture(createFujiLabelTexture);
-  const camera = DESK_OBJECT_DIMENSIONS.fujiXT5;
-  const lensRadius = camera.lensDiameter / 2;
   return (
-    <group position={[1.73, surfaceY + camera.bodyHeight / 2, .3]} rotation={[0, -.12, 0]} userData={META.camera}>
-      <RoundedBox args={[camera.bodyWidth, camera.bodyHeight, camera.bodyDepth]} radius={.009} smoothness={5} castShadow>
-        <meshStandardMaterial color="#17191b" roughness={.42} metalness={.34} />
-      </RoundedBox>
-      <RoundedBox args={[.028, camera.bodyHeight * .82, camera.bodyDepth * 1.08]} radius={.008} smoothness={4} position={[-camera.bodyWidth / 2, -.002, .002]} castShadow><meshStandardMaterial color="#111315" roughness={.56} /></RoundedBox>
-      <mesh position={[0, camera.bodyHeight / 2 + .01, 0]} castShadow><boxGeometry args={[.048, .02, .045]} /><meshStandardMaterial color="#17191b" roughness={.38} metalness={.4} /></mesh>
-      <mesh position={[0, 0, camera.bodyDepth / 2 + camera.lensDepth / 2]} rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[lensRadius * .88, lensRadius, camera.lensDepth, 36]} /><meshStandardMaterial color="#0b0d0f" roughness={.3} metalness={.58} /></mesh>
-      <mesh position={[0, 0, camera.bodyDepth / 2 + camera.lensDepth + .001]}><circleGeometry args={[lensRadius * .76, 32]} /><meshPhysicalMaterial color="#14233a" roughness={.1} metalness={.45} clearcoat={1} /></mesh>
-      {[-camera.bodyWidth * .3, camera.bodyWidth * .31].map((x) => <mesh key={x} position={[x, camera.bodyHeight / 2 + .016, 0]} castShadow><cylinderGeometry args={[.009, .0095, .006, 20]} /><meshStandardMaterial color="#303235" roughness={.28} metalness={.78} /></mesh>)}
-      <mesh position={[0, .012, camera.bodyDepth / 2 + .001]}><planeGeometry args={[.065, .016]} /><meshBasicMaterial map={label} toneMapped={false} /></mesh>
-      <mesh position={[camera.bodyWidth * .39, .02, camera.bodyDepth / 2 + .002]}><planeGeometry args={[.018, .008]} /><meshBasicMaterial color="#d8ddd9" /></mesh>
-    </group>
+    <DeskInteractiveItem position={[-CENTRAL_WORKSPACE.desk.width * .3, surfaceY, .12]} rotation={[0, .18, 0]} meta={META.camera}>
+      <DetailedFujiCamera />
+    </DeskInteractiveItem>
   );
 }
 
 export function DesktopPC({ groupRef }: { groupRef?: RefObject<THREE.Group | null> }) {
   const { position, rotation, scale } = DESKTOP_PC_TRANSFORM;
   return (
-    <group ref={groupRef} position={position} rotation={rotation} scale={scale} userData={META.pc}>
+    <DeskInteractiveItem groupRef={groupRef} position={position} rotation={rotation} scale={scale} meta={META.pc}>
       <RoundedBox args={[DESKTOP_PC_BASE_SIZE.width, DESKTOP_PC_BASE_SIZE.height, DESKTOP_PC_BASE_SIZE.depth]} radius={.065} smoothness={5} castShadow receiveShadow>
         <meshPhysicalMaterial color="#0b0f14" roughness={.28} metalness={.45} transparent opacity={.93} />
       </RoundedBox>
       <mesh position={[0, .18, .337]}><torusGeometry args={[.17, .018, 12, 40]} /><meshStandardMaterial color="#27c7f4" emissive="#1c9ed1" emissiveIntensity={1.6} toneMapped={false} /></mesh>
       <mesh position={[0, -.37, .338]}><boxGeometry args={[.2, .035, .01]} /><meshStandardMaterial color="#4fe3ff" emissive="#1fb7d8" emissiveIntensity={1.1} toneMapped={false} /></mesh>
       <mesh position={[.19, .49, .34]}><circleGeometry args={[.018, 12]} /><meshBasicMaterial color="#68e7ff" toneMapped={false} /></mesh>
-    </group>
+      <mesh position={[-.315, 0, 0]} rotation={[0, -Math.PI / 2, 0]}><planeGeometry args={[.5, 1.02]} /><meshPhysicalMaterial color="#222a30" roughness={.21} metalness={.1} transparent opacity={.6} /></mesh>
+      {Array.from({ length: 9 }, (_, i) => <mesh key={i} position={[0, .615, -.22 + i * .035]}><boxGeometry args={[.38, .003, .011]} /><meshStandardMaterial color="#050607" roughness={.72} /></mesh>)}
+    </DeskInteractiveItem>
   );
 }
 
@@ -513,13 +506,14 @@ export function DeskAccessories() {
       </RoundedBox>
       <KeyboardAndMouse surfaceY={surfaceY} />
       <DeskLamp surfaceY={surfaceY} />
-      <DeskPlant position={[-1.88, surfaceY + .13, -.52]} scale={.72} meta={META.plantLeft} />
+      <DeskPlant position={[-desk.width * .38, surfaceY + .0972, -desk.depth * .3]} scale={.72} meta={META.plantLeft} />
       <Phone surfaceY={surfaceY} />
       <NotebookAndWatch surfaceY={surfaceY} />
       <CoffeeCup surfaceY={surfaceY} />
       <RuntianBottle surfaceY={surfaceY} />
-      <DeskPlant position={[2.1, surfaceY + .16, -.5]} scale={.92} meta={META.plantRight} />
+      <DeskPlant position={[desk.width * .3, surfaceY + .081, -desk.depth * .66]} scale={.6} meta={META.plantRight} />
       <FujiXT5 surfaceY={surfaceY} />
+      <DeskCables surfaceY={surfaceY} />
     </group>
   );
 }

@@ -10,6 +10,9 @@ import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
 import { photoWallImages } from "@/data/photoWall";
+import type { DeskSelection } from "@/data/deskItems";
+
+const DeskDetailOverlay = dynamic(() => import("@/components/leo-room/DeskDetailOverlay").then((mod) => mod.DeskDetailOverlay), { ssr: false });
 
 const LeoRoomScene = dynamic(() => import("@/components/LeoRoomScene").then((mod) => mod.LeoRoomScene), {
   ssr: false,
@@ -72,6 +75,8 @@ export function OtherSide() {
   const [photoLightboxLoaded, setPhotoLightboxLoaded] = useState(false);
   const [showExploreHint, setShowExploreHint] = useState(true);
   const [isMobileRoom, setIsMobileRoom] = useState(false);
+  const [activeDeskItem, setActiveDeskItem] = useState<DeskSelection | null>(null);
+  const [showDeskHint, setShowDeskHint] = useState(false);
   const readingTimer = useRef<number | null>(null);
   const escapeKeyDownHandled = useRef(false);
 
@@ -83,7 +88,21 @@ export function OtherSide() {
   };
 
   const requestRoomFocus = (id: LeoRoomFocusId | "overview") => {
+    setActiveDeskItem(null);
     setFocusRequest({ id, nonce: Date.now() });
+  };
+
+  useEffect(() => {
+    if (!showDeskHint) return;
+    const timer = window.setTimeout(() => setShowDeskHint(false), 4200);
+    return () => window.clearTimeout(timer);
+  }, [showDeskHint]);
+
+  const selectDeskItem = (item: DeskSelection) => {
+    setActiveDeskItem(item);
+    setFocusedItem(null);
+    setActiveTarget("desk");
+    setShowDeskHint(false);
   };
 
   useEffect(() => {
@@ -112,6 +131,7 @@ export function OtherSide() {
   }, []);
 
   const openChildhoodReader = (id: ChildhoodStoryId) => {
+    setActiveDeskItem(null);
     clearReadingTimer();
     setActiveStoryId(id);
     setFocusedItem(null);
@@ -158,6 +178,7 @@ export function OtherSide() {
   };
 
   const openPhotoLightbox = (photoId: string) => {
+    setActiveDeskItem(null);
     setFocusedItem(null);
     setActiveTarget("gallery");
     setRoomMode("photoOpen");
@@ -178,9 +199,11 @@ export function OtherSide() {
     setActiveTarget("desk");
     setRoomMode("explore");
     requestRoomFocus("desk");
+    setShowDeskHint(true);
   };
 
   const openMyWorldMap = () => {
+    setActiveDeskItem(null);
     clearReadingTimer();
     setReadingOpen(false);
     setPhotoLightboxId(null);
@@ -191,6 +214,7 @@ export function OtherSide() {
   };
 
   const returnFromRoom = () => {
+    if (activeDeskItem) { setActiveDeskItem(null); return; }
     if (photoLightboxId) {
       closePhotoLightbox();
       return;
@@ -234,6 +258,7 @@ export function OtherSide() {
       }
       event.preventDefault();
       if (event.type === "keydown") escapeKeyDownHandled.current = true;
+      if (activeDeskItem) { setActiveDeskItem(null); return; }
       if (photoLightboxId) {
         closePhotoLightbox();
         return;
@@ -269,7 +294,7 @@ export function OtherSide() {
       document.removeEventListener("keyup", onKeyDown, true);
       clearReadingTimer();
     };
-  }, [readingOpen, activeTarget, photoLightboxId]);
+  }, [readingOpen, activeTarget, photoLightboxId, activeDeskItem]);
 
   const focusWall = (id: LeoRoomFocusId) => {
     setShowExploreHint(false);
@@ -319,8 +344,12 @@ export function OtherSide() {
           onChildhoodActivate={activateChildhoodWall}
           onPhotoSelect={(photo) => openPhotoLightbox(photo.id)}
           photoLightboxEnabled={activeTarget === "gallery" && roomMode === "explore"}
+          activeDeskItem={activeDeskItem}
+          onDeskItemSelect={selectDeskItem}
         />
       </div>
+
+      {activeDeskItem && <DeskDetailOverlay id={activeDeskItem.id} onClose={() => setActiveDeskItem(null)} />}
 
       {panel && (
         <aside className="leo-room__focus-card" aria-live="polite">
@@ -356,10 +385,10 @@ export function OtherSide() {
         </button>
       )}
 
-      {activeTarget === "desk" && roomMode === "explore" && (
+      {activeTarget === "desk" && roomMode === "explore" && showDeskHint && !activeDeskItem && (
         <div className="leo-room__desk-hint">
           <span>{cn ? "工作台" : "MY DESK"}</span>
-          <b>{cn ? "拖动继续探索" : "Keep exploring freely"}</b>
+          <b>{cn ? "点击桌面物件，探索我的工作方式" : "CLICK AN OBJECT TO EXPLORE"}</b>
         </div>
       )}
 

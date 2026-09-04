@@ -15,10 +15,10 @@ export const CENTRAL_WORKSPACE = {
     wingDepth: deskDepth * .72,
   },
   monitor: {
-    width: deskWidth * .54,
-    height: deskWidth * .255,
-    depth: .095,
-    centerY: deskHeight + deskWidth * .19,
+    width: deskWidth * .30,
+    height: deskWidth * .30 * 9 / 16,
+    depth: .055,
+    centerY: .14 + deskHeight + ROOM.height * .035 / 2 + .18 + deskWidth * .30 * 9 / 32,
     z: -deskDepth * .18,
   },
   chair: {
