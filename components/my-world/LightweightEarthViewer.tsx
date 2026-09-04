@@ -9,10 +9,10 @@ import { travelWorldPlaces, type TravelWorldPlace } from "@/data/travelWorld";
 const HOME_ID = "hong-kong";
 const EARTH_RADIUS = 1.55;
 const TEXTURES = {
-  color: "/room/world/textures/earth-color-2k.webp",
+  color: "/room/world/textures/earth-nasa-blue-marble-2k.webp",
   night: "/room/world/textures/earth-night-2k.webp",
   bump: "/room/world/textures/earth-bump-2k.webp",
-  boundaries: "/room/world/textures/country-boundaries.png",
+  boundaries: "/room/world/textures/country-boundaries-aligned.png",
 };
 
 const COUNTRY_LABELS = [
@@ -30,14 +30,19 @@ const COUNTRY_LABELS = [
 ];
 
 function latLngToVector3(lat: number, lng: number, radius = EARTH_RADIUS) {
+  // Standard equirectangular: u=(lng+180)/360, v=(lat+90)/180.
+  // Matches unmodified SphereGeometry UVs: Greenwich +X, east toward -Z.
   const phi = THREE.MathUtils.degToRad(90 - lat);
   const theta = THREE.MathUtils.degToRad(lng);
   return new THREE.Vector3(
-    radius * Math.sin(phi) * Math.sin(theta),
-    radius * Math.cos(phi),
     radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    -radius * Math.sin(phi) * Math.sin(theta),
   );
 }
+
+// Bring a longitude to the +Z camera using the group, never texture offsets.
+const longitudeFacingCamera = (lng: number) => THREE.MathUtils.degToRad(-90 - lng);
 
 function createLabelTexture(en: string, zh: string) {
   const canvas = document.createElement("canvas");
@@ -152,7 +157,7 @@ function TexturedEarth({
     TEXTURES.boundaries,
   ]);
   const groupRef = useRef<THREE.Group>(null);
-  const targetRotationRef = useRef({ x: THREE.MathUtils.degToRad(-8), y: THREE.MathUtils.degToRad(-114) });
+  const targetRotationRef = useRef({ x: THREE.MathUtils.degToRad(-8), y: longitudeFacingCamera(114) });
   const autoUntilRef = useRef(0);
 
   const labels = useMemo(() => COUNTRY_LABELS.map((label) => ({
@@ -169,6 +174,11 @@ function TexturedEarth({
       texture.anisotropy = 8;
       texture.wrapS = THREE.RepeatWrapping;
       texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.flipY = true;
+      texture.offset.set(0, 0);
+      texture.repeat.set(1, 1);
+      texture.rotation = 0;
+      texture.needsUpdate = true;
     });
   }, [colorMap, nightMap, bumpMap, boundaryMap]);
 
@@ -177,7 +187,7 @@ function TexturedEarth({
     if (!focus) return;
     targetRotationRef.current = {
       x: THREE.MathUtils.degToRad(Math.max(-14, Math.min(10, -focus.lat * 0.14))),
-      y: THREE.MathUtils.degToRad(-focus.lng),
+      y: longitudeFacingCamera(focus.lng),
     };
     autoUntilRef.current = performance.now() + 4200;
   }, [selected]);
@@ -200,7 +210,7 @@ function TexturedEarth({
   return (
     <group
       ref={groupRef}
-      rotation={[THREE.MathUtils.degToRad(-8), THREE.MathUtils.degToRad(-114), 0]}
+      rotation={[THREE.MathUtils.degToRad(-8), longitudeFacingCamera(114), 0]}
       onPointerDown={() => {
         autoUntilRef.current = performance.now() + 4200;
       }}
