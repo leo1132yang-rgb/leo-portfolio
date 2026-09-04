@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CareerProfile } from "@/components/ProfileFilmstrip";
+import { EvolvingProfile } from "@/components/profile/EvolvingProfile";
 
 export const metadata: Metadata = {
   title: "个人履历｜Leo 李阳",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ProfilePage() {
-  return <CareerProfile />;
+  return <EvolvingProfile />;
 }
