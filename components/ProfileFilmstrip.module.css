@@ -1,4 +1,6 @@
-.page{--paper:#e9e4db;--muted:#99978e;--gold:#b99a6a;background:#111210;color:var(--paper);font-family:Geist,"Microsoft YaHei",sans-serif;overflow-x:clip}
+.page{--paper:#e9e4db;--muted:#99978e;--gold:#b99a6a;background:#111210;color:var(--paper);font-family:Geist,"Microsoft YaHei",sans-serif;overflow-x:clip;position:relative;isolation:isolate}
+.page>main{position:relative;z-index:1}
+.page .scene{background:rgba(17,18,16,.45)}
 .page *{box-sizing:border-box}.page a{color:inherit}.page button,.page summary{touch-action:manipulation}.page :focus-visible{outline:1px solid var(--gold);outline-offset:6px}
 .hero{min-height:100svh;padding:140px 7vw 50px;position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden}
 .heroMeta{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.2em;color:var(--muted)}

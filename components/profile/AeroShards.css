@@ -1,0 +1,29 @@
+.profile-atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: .65;
+}
+.profile-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(17,18,16,.25), rgba(17,18,16,.55));
+  pointer-events: none;
+}
+.profile-atmosphere .aero-shards,
+.profile-atmosphere .aero-shards__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+.profile-atmosphere .aero-shards { opacity: 0; transition: opacity 700ms ease; }
+.profile-atmosphere .aero-shards[data-ready="true"] { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .profile-atmosphere { display: none; }
+}

@@ -7,6 +7,7 @@ import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage, type Language } from "@/components/LanguageProvider";
 import { careerStages, type Stage } from "@/data/careerStages";
 import styles from "./ProfileFilmstrip.module.css";
+import { ProfileAtmosphere } from "./profile/ProfileAtmosphere";
 
 const sceneNames = ["THE FIRST FRAME", "LEARNING TO SEE", "IMAGE INTO WORDS", "CREATOR → OPERATOR", "PAUSE. REFRAME.", "ABILITIES CONVERGE", "SYSTEM → NOW"];
 // Existing personal photographs, not historical evidence of a school or employer.
@@ -90,6 +91,7 @@ export function CareerProfile() {
   return <>
     <SiteNavbar />
     <div className={styles.page}>
+    <ProfileAtmosphere />
     <main>
       <header className={styles.hero}>
         <div className={styles.heroMeta}><span>PROFILE / 个人履历</span><span>CAREER FILMSTRIP · 01—07</span></div>
