@@ -103,7 +103,7 @@ function TravelMemoryDrawer({
   );
 }
 
-export function MyWorldPage() {
+export function MyWorldPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { language } = useLanguage();
   const cn = language === "cn";
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -112,7 +112,7 @@ export function MyWorldPage() {
 
   return (
     <main className="my-world-page my-world-page--earth-lite">
-      <SiteNavbar />
+      {!embedded && <SiteNavbar />}
       <div className="my-world-stars" aria-hidden="true" />
 
       <motion.section
@@ -127,7 +127,7 @@ export function MyWorldPage() {
           <p className="my-world-earth-lite-lead">
             {cn ? "拖动地球，探索我的足迹。" : "Drag the Earth to explore my traces."}
           </p>
-          <Link href="/other-side" className="my-world-back">← {cn ? "返回另一面" : "Back to The Other Side"}</Link>
+          {!embedded && <Link href="/other-side" className="my-world-back">← {cn ? "返回另一面" : "Back to The Other Side"}</Link>}
         </aside>
 
         <section className="my-world-earth-lite-panel">

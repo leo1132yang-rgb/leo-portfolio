@@ -54,7 +54,7 @@ export function DetailedFujiCamera() {
   useEffect(() => () => body.dispose(), [body]);
   useEffect(() => () => barrel.dispose(), [barrel]);
   return <group>
-    <mesh geometry={body} position={[0, .002, -.025]} castShadow receiveShadow><meshStandardMaterial color="#202429" roughness={.46} metalness={.6} /></mesh>
+    <mesh geometry={body} position={[0, .0005, -.025]} castShadow receiveShadow><meshStandardMaterial color="#202429" roughness={.46} metalness={.6} /></mesh>
     <RoundedBox args={[.123, .051, .052]} radius={.006} smoothness={3} position={[0, .031, 0]} castShadow><meshStandardMaterial color="#141619" roughness={.87} metalness={.03} /></RoundedBox>
     <mesh position={[-.055, .033, .023]} scale={[.012, .031, .022]} castShadow><sphereGeometry args={[1, 16, 12]} /><meshStandardMaterial color="#161819" roughness={.84} /></mesh>
     <mesh geometry={barrel} position={[0, .035, .027]} rotation={[Math.PI / 2, 0, 0]} castShadow><meshStandardMaterial color="#16191d" roughness={.38} metalness={.65} /></mesh>
@@ -72,7 +72,7 @@ export function DetailedFujiCamera() {
     <mesh position={[0,.075,-.037]} rotation={[0,Math.PI,0]}><planeGeometry args={[.017,.01]} /><meshPhysicalMaterial color="#25323a" roughness={.1} metalness={.5} /></mesh>
     <mesh position={[0,.059,.028]}><planeGeometry args={[.116,.058]} /><meshBasicMaterial map={mark} transparent depthWrite={false} /></mesh>
     <RoundedBox args={[.08,.046,.005]} radius={.003} smoothness={2} position={[0,.032,-.029]}><meshStandardMaterial color="#080b10" roughness={.22} metalness={.2} /></RoundedBox>
-    {!mobile && <Cable points={[[-.063,.046,.005],[-.097,.014,.045],[-.082,.003,.13],[.035,.003,.14],[.08,.014,.06],[.063,.048,.005]]} radius={.0025} color="#342c24" />}
+    {!mobile && <Cable points={[[-.063,.046,.005],[-.097,.014,.045],[-.082,.003,.13],[.035,.003,.14],[.08,.014,.06],[.063,.048,.005]]} radius={.0025} color="#342c24" grounded />}
   </group>;
 }
 
@@ -112,8 +112,8 @@ export function WatchFace({radius}:{radius:number}) {
   return <mesh position={[0,0,.0025]}><circleGeometry args={[radius,32]} /><meshStandardMaterial map={texture} roughness={.22} metalness={.12} /></mesh>;
 }
 
-function Cable({points,radius=.006,color="#17191a"}:{points:number[][];radius?:number;color?:string}) {
-  const geometry=useMemo(()=>new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p as [number,number,number]))),24,radius,5,false),[points,radius]);
+function Cable({points,radius=.006,color="#17191a",grounded=false}:{points:number[][];radius?:number;color?:string;grounded?:boolean}) {
+  const geometry=useMemo(()=>{const g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points.map(p=>new THREE.Vector3(...p as [number,number,number]))),24,radius,5,false);if(grounded){const p=g.attributes.position;for(let i=0;i<p.count;i++)p.setY(i,Math.max(.00015,p.getY(i)));g.computeVertexNormals();}return g;},[points,radius,grounded]);
   useEffect(()=>()=>geometry.dispose(),[geometry]);
   return <mesh geometry={geometry}><meshStandardMaterial color={color} roughness={.85} /></mesh>;
 }
@@ -123,8 +123,8 @@ export function DeskCables({surfaceY}:{surfaceY:number}) {
   const {size}=useThree();
   if(size.width<768)return null;
   return <group>
-    <Cable points={[[0,monitor.centerY-.1,monitor.z-.07],[.1,surfaceY+.02,-desk.depth*.28],[.18,surfaceY+.008,-desk.depth*.46],[.2,surfaceY-.25,-desk.depth*.51]]} />
-    <Cable radius={.003} points={[[-desk.width*.18,surfaceY+.018,-.04],[-desk.width*.15,surfaceY+.005,-.14],[-desk.width*.12,surfaceY+.005,-desk.depth*.4],[-desk.width*.1,surfaceY-.15,-desk.depth*.5]]} />
+    <Cable points={[[0,monitor.centerY-.1,monitor.z-.07],[.025,surfaceY+.02,-.17],[.09,surfaceY+.006,-.195],[.15,surfaceY-.18,-.225]]} />
+    <Cable radius={.003} points={[[-.49,surfaceY+.012,-.164],[-.54,surfaceY+.003,-.175],[-.63,surfaceY+.003,-.195],[-.66,surfaceY-.15,-.225]]} />
   </group>;
 }
 

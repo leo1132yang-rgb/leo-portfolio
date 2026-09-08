@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { PhotoWallImage } from "@/data/photoWall";
+import { useLanguage } from "@/components/LanguageProvider";
+import styles from "./RoomNavigation.module.css";
 
 type PhotoLightboxProps = {
   photos: PhotoWallImage[];
@@ -11,6 +13,13 @@ type PhotoLightboxProps = {
 };
 
 export function PhotoLightbox({ photos, selectedId, onSelect, onClose }: PhotoLightboxProps) {
+  const { language } = useLanguage();
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement as HTMLElement | null;
+    closeRef.current?.focus({ preventScroll: true });
+    return () => { if (previous?.isConnected) previous.focus({ preventScroll: true }); };
+  }, []);
   const selectedIndex = selectedId ? photos.findIndex((photo) => photo.id === selectedId) : -1;
   const photo = selectedIndex >= 0 ? photos[selectedIndex] : null;
 
@@ -24,7 +33,6 @@ export function PhotoLightbox({ photos, selectedId, onSelect, onClose }: PhotoLi
     if (!photo) return;
     const previousOverflow = document.body.style.overflow;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft") goTo(-1);
       if (event.key === "ArrowRight") goTo(1);
     };
@@ -49,7 +57,8 @@ export function PhotoLightbox({ photos, selectedId, onSelect, onClose }: PhotoLi
         if (event.target === event.currentTarget) onClose();
       }}
     >
-      <button type="button" className="photo-wall-lightbox__close" onClick={onClose} aria-label="关闭预览">×</button>
+      <button ref={closeRef} type="button" className={`${styles.button} ${styles.photoReturn}`} onClick={onClose}>← {language === "cn" ? "返回房间" : "Return to room"}</button>
+      <button type="button" className="photo-wall-lightbox__close" onClick={onClose} aria-label="关闭照片，返回房间">×</button>
       <section className="photo-wall-lightbox__image" aria-label="当前照片">
         <img key={photo.id} src={photo.previewSrc} alt={photo.title} />
       </section>

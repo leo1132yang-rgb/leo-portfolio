@@ -394,7 +394,8 @@ export function WindowCosmicExterior() {
         renderOrder={6}
         raycast={() => null}
       >
-        <planeGeometry args={[8.9, 5]} />
+        {/* Cover the window's oblique seated frustum, including limited head turns. */}
+        <planeGeometry args={[22, 11]} />
         <meshBasicMaterial
           map={texture}
           side={THREE.DoubleSide}
@@ -414,7 +415,7 @@ export function WindowCosmicExterior() {
         renderOrder={7}
         raycast={() => null}
       >
-        <planeGeometry args={[5.2, 3.5]} />
+        <planeGeometry args={[15, 8]} />
         <shaderMaterial
           ref={materialRef}
           vertexShader={cosmicVertexShader}

@@ -1,5 +1,8 @@
 import { ROOM, ROOM_LAYOUT } from "@/data/leoRoomDimensions";
 
+// User-selected display scale: double the calibrated desktop props together.
+export const DESK_PROP_SCALE = 2;
+
 const deskWidth = Math.min(ROOM.width * .37, ROOM_LAYOUT.rug.radius * 2.02);
 const deskDepth = ROOM.depth * .19;
 const deskHeight = ROOM.height * .21;
@@ -15,11 +18,11 @@ export const CENTRAL_WORKSPACE = {
     wingDepth: deskDepth * .72,
   },
   monitor: {
-    width: deskWidth * .30,
-    height: deskWidth * .30 * 9 / 16,
+    width: .598,
+    height: .598 * 9 / 16,
     depth: .055,
-    centerY: .14 + deskHeight + ROOM.height * .035 / 2 + .18 + deskWidth * .30 * 9 / 32,
-    z: -deskDepth * .18,
+    centerY: .14 + deskHeight + ROOM.height * .035 / 2 + .10 + .598 * 9 / 32,
+    z: -.08,
   },
   chair: {
     position: [deskWidth * .17, 0, deskDepth * .93] as [number, number, number],
@@ -33,17 +36,19 @@ export const CENTRAL_WORKSPACE = {
   },
 } as const;
 
-// Leo's Room uses an architectural scale where one world unit is treated as
-// approximately one metre. Keep small desk props dimensioned here so they do
-// not drift back toward oversized "demo model" proportions.
+// Props use metres (1 world unit = 1 m). The existing 4.81 m studio table and
+// chair are deliberately NOT rescaled here: furniture is outside this pass.
+// Physical dimensions below are independent of the oversized table width.
 export const DESK_OBJECT_DIMENSIONS = {
   coffeeCup: {
     height: .1,
     diameter: .085,
   },
   runtianBottle: {
-    height: .22,
-    diameter: .065,
+    // Approximation of the supplied small green-cap / blue-white-label bottle.
+    // The reference appears to read 380 ml; this is not a measured product CAD.
+    height: .205,
+    diameter: .057,
   },
   fujiXT5: {
     bodyWidth: .13,
@@ -53,8 +58,8 @@ export const DESK_OBJECT_DIMENSIONS = {
     lensDepth: .07,
   },
   notebook: {
-    width: .21,
-    depth: .145,
+    width: .148,
+    depth: .21,
     height: .018,
   },
   watch: {

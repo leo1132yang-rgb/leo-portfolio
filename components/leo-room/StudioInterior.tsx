@@ -1,5 +1,9 @@
 "use client";
 
+import { ROOM_LIFE } from "@/data/leoRoomLife";
+import { LoungeSeat } from "./RoomLifeFurniture";
+import { PersonalBookshelf } from "./PersonalBookshelf";
+
 import { RoundedBox } from "@react-three/drei";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
@@ -100,11 +104,11 @@ function Shelf({ wood }: { wood: THREE.Texture }) {
     {[-.65, .65].map(x => <Block key={x} size={[.055, 3.25, .55]} at={[x, 1.625, 0]} />)}
     {[.16, .85, 1.55, 2.25, 3.05].map((y, index) => <group key={y}>
       <Block size={[1.38, .065, .57]} at={[0, y, 0]} wood={wood} />
-      {index < 4 && <Books at={[-.51, y + .034, .02]} count={index === 2 ? 4 : 6} />}
       {index > 1 && <mesh position={[0, y - .045, .17]}><boxGeometry args={[1.15, .016, .02]} /><meshStandardMaterial color="#ffe5b7" emissive="#ffca88" emissiveIntensity={2} /></mesh>}
     </group>)}
     <GlobeLamp at={[.38, 1.59, .02]} />
-    <Plant at={[.27, 2.29, 0]} scale={.48} />
+    <PersonalBookshelf />
+    <Plant at={[.46, .883, 0]} scale={.25} />
   </group>;
 }
 
@@ -130,10 +134,10 @@ function Credenza({ wood }: { wood: THREE.Texture }) {
 
 function Lounge({ wood, fabric }: { wood: THREE.Texture; fabric: THREE.Texture }) {
   const cushion = (size: Vec, at: Vec, rotation: Vec = [0, 0, 0]) => <RoundedBox args={size} position={at} rotation={rotation} radius={.12} smoothness={3} bevelSegments={3} castShadow receiveShadow><meshStandardMaterial map={fabric} bumpMap={fabric} bumpScale={.008} color="#eee5d5" roughness={.96} /></RoundedBox>;
-  return <group position={[4.5, 0, .2]}>
+  return <group position={ROOM_LIFE.lounge.origin}>
     <mesh position={[-.1, .025, .3]} receiveShadow><cylinderGeometry args={[1.48, 1.48, .035, 64]} /><meshStandardMaterial color="#51483a" map={fabric} roughness={1} /></mesh>
     {[1.29, 1.36, 1.42].map(radius => <mesh key={radius} position={[-.1, .046, .3]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[radius, radius + .013, 64]} /><meshStandardMaterial color="#a58d64" roughness={1} /></mesh>)}
-    <group position={[.2, .03, -.2]} rotation={[0, -.32, 0]}>
+    <group position={ROOM_LIFE.lounge.chairOrigin} rotation={[0, ROOM_LIFE.lounge.yaw, 0]}><LoungeSeat>
       <Block size={[1.35, .14, 1.18]} at={[0, .27, 0]} wood={wood} radius={.06} />
       {[-.52, .52].flatMap(x => [-.42, .42].map(z => <Block key={`${x}-${z}`} size={[.07, .24, .07]} at={[x, .14, z]} />))}
       {cushion([1.12, .27, 1.02], [0, .48, -.02])}
@@ -141,7 +145,7 @@ function Lounge({ wood, fabric }: { wood: THREE.Texture; fabric: THREE.Texture }
       {[-1, 1].map(side => <group key={side}>{cushion([.25, .5, 1.04], [side * .64, .65, -.06])}</group>)}
       {[-.36, 0, .36].map(x => <Block key={x} size={[.009, .57, .014]} at={[x, .92, -.286]} color="#a7977c" radius={.003} />)}
       {cushion([.48, .42, .18], [.26, .77, -.2], [0, 0, -.15])}
-    </group>
+    </LoungeSeat></group>
     <group position={[-.65, .04, 1.13]}>
       <mesh position={[0, .49, 0]} castShadow receiveShadow><cylinderGeometry args={[.49, .49, .055, 48]} /><meshStandardMaterial map={wood} roughness={.42} /></mesh>
       <mesh position={[0, .25, 0]} castShadow><cylinderGeometry args={[.1, .27, .46, 24]} /><meshStandardMaterial color="#1d201d" roughness={.44} metalness={.6} /></mesh>
@@ -155,7 +159,7 @@ function Lounge({ wood, fabric }: { wood: THREE.Texture; fabric: THREE.Texture }
 
 export function StudioInterior() {
   const surfaces = useStudioSurfaces();
-  // Decorative objects intentionally have no handlers or interaction state.
+  // Seat interaction wraps the existing chair without changing its model.
   return <group>
     <Credenza wood={surfaces.wood} />
     <Shelf wood={surfaces.wood} />

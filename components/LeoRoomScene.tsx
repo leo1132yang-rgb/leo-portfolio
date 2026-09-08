@@ -1,25 +1,23 @@
 "use client";
 
-import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
-import { CameraControls, ContactShadows, type CameraControlsImpl } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { ContactShadows } from "@react-three/drei";
+import { Suspense, useEffect, useMemo, useRef, type ReactElement } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { CosmicBackdrop, WindowCosmicExterior } from "@/components/leo-room/CosmicBackdrop";
 import { CentralWorkspace } from "@/components/leo-room/CentralWorkspace";
 import { StudioInterior } from "@/components/leo-room/StudioInterior";
-import { DeskFocusController, DeskInteractionScope } from "@/components/leo-room/DeskInteractiveItem";
+import { DeskInteractionScope } from "@/components/leo-room/DeskInteractiveItem";
 import type { DeskSelection } from "@/data/deskItems";
 import { WallDisplays } from "@/components/leo-room/WallDisplays";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
-import {
-  leoRoomExploreProfiles,
-  leoRoomFocusTargets,
-  leoRoomMobileOverviewCamera,
-  leoRoomOverviewCamera,
-  type LeoRoomFocusId,
-} from "@/data/leoRoomCamera";
+import { leoRoomOverviewCamera } from "@/data/leoRoomCamera";
+import { RoomLifeContext } from "@/components/leo-room/RoomLifeContext";
+import { RoomLightingScope } from "@/components/leo-room/RoomLightingScope";
+import { RoomCameraControls } from "@/components/leo-room/RoomCameraControls";
+import type { RoomInteractionController } from "@/components/leo-room/useRoomInteractionController";
 import { ROOM, ROOM_LAYOUT, ROOM_LIGHTING, ROOM_STRUCTURE } from "@/data/leoRoomDimensions";
 import type { PhotoWallImage } from "@/data/photoWall";
 
@@ -28,7 +26,6 @@ import type { PhotoWallImage } from "@/data/photoWall";
 const CAMERA_POSITION = leoRoomOverviewCamera.position;
 const CAMERA_TARGET = leoRoomOverviewCamera.target;
 
-type RoomFocusRequest = { id: LeoRoomFocusId | "overview"; nonce: number };
 
 function generatedTexture(kind: "wall" | "wood" | "rug" | "window") {
   const width = kind === "wood" ? 512 : 256;
@@ -298,11 +295,11 @@ function RoomLighting() {
 
   return (
     <group>
-      <hemisphereLight args={["#c5c7c4", "#654129", .75]} />
-      <ambientLight color="#dfcbb2" intensity={.3} />
+      <hemisphereLight userData={{roomNightIntensity:.4,roomNightColor:"#a8c3df"}} args={["#c5c7c4", "#654129", .75]} />
+      <ambientLight userData={{roomNightIntensity:.16,roomNightColor:"#b0c4df"}} color="#dfcbb2" intensity={.3} />
 
       <rectAreaLight position={[0, ROOM.height * .76, .35]} rotation={[-Math.PI / 2, 0, 0]} color="#ffd0a0" intensity={3.4} width={ROOM.width * .55} height={ROOM.depth * .48} />
-      <rectAreaLight position={[ROOM_STRUCTURE.halfWidth - .55, ROOM_STRUCTURE.window.sill + ROOM_STRUCTURE.window.height / 2, ROOM_STRUCTURE.window.centerZ]} rotation={[0, Math.PI / 2, 0]} color="#adc7da" intensity={1.6} width={ROOM_STRUCTURE.window.width} height={ROOM_STRUCTURE.window.height} />
+      <rectAreaLight userData={{roomNightIntensity:1.6}} position={[ROOM_STRUCTURE.halfWidth - .55, ROOM_STRUCTURE.window.sill + ROOM_STRUCTURE.window.height / 2, ROOM_STRUCTURE.window.centerZ]} rotation={[0, Math.PI / 2, 0]} color="#adc7da" intensity={1.6} width={ROOM_STRUCTURE.window.width} height={ROOM_STRUCTURE.window.height} />
 
       <mesh position={[0, ROOM_LIGHTING.coveY, ROOM_LIGHTING.backZ]}>
         <boxGeometry args={[ROOM_LIGHTING.backStripLength, .055, .065]} />
@@ -327,7 +324,7 @@ function RoomLighting() {
       </mesh>
       {[-.41, -.14, .14, .41].map((ratio) => <CeilingSpot key={ratio} x={ROOM_LIGHTING.trackLength * ratio} />)}
 
-      <directionalLight
+      <directionalLight userData={{roomNightIntensity:.2,roomNightColor:"#adc7da"}}
         position={[-ROOM.width * .18, ROOM.height * 1.2, ROOM.depth * .65]}
         color="#ffd4ad"
         intensity={1.8}
@@ -344,82 +341,18 @@ function RoomLighting() {
   );
 }
 
-function RoomCameraControls({
-  focusRequest,
-  controlsEnabled,
-}: {
-  focusRequest: RoomFocusRequest | null;
-  controlsEnabled: boolean;
-}) {
-  const controlsRef = useRef<CameraControlsImpl>(null);
-  const { camera } = useThree();
-  const [isMobileRoom, setIsMobileRoom] = useState(false);
-  const profile = isMobileRoom ? leoRoomExploreProfiles.mobile : leoRoomExploreProfiles.desktop;
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
-    const update = () => setIsMobileRoom(mediaQuery.matches);
-    update();
-    mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
-  }, []);
-
-  useEffect(() => {
-    const controls = controlsRef.current;
-    if (!controls) return;
-    if (camera instanceof THREE.PerspectiveCamera) {
-      camera.fov = profile.fov;
-      camera.updateProjectionMatrix();
-    }
-    const destination = !focusRequest || focusRequest.id === "overview"
-      ? isMobileRoom ? leoRoomMobileOverviewCamera : leoRoomOverviewCamera
-      : leoRoomFocusTargets[focusRequest.id];
-    void controls.setLookAt(
-      ...destination.position,
-      ...destination.target,
-      true,
-    );
-  }, [camera, focusRequest, focusRequest?.nonce, isMobileRoom, profile.fov]);
-
-  return (
-    <CameraControls
-      ref={controlsRef}
-      makeDefault
-      enabled={controlsEnabled}
-      smoothTime={.76}
-      draggingSmoothTime={.12}
-      minDistance={profile.minDistance}
-      maxDistance={profile.maxDistance}
-      minPolarAngle={profile.minPolarAngle}
-      maxPolarAngle={profile.maxPolarAngle}
-      minAzimuthAngle={profile.minAzimuthAngle}
-      maxAzimuthAngle={profile.maxAzimuthAngle}
-      azimuthRotateSpeed={isMobileRoom ? .55 : .45}
-      polarRotateSpeed={isMobileRoom ? .42 : .38}
-      dollySpeed={.38}
-      truckSpeed={0}
-      dollyToCursor={false}
-      infinityDolly={false}
-    />
-  );
-}
-
 function EmptyRoom({
-  activeDeskItem,
   onDeskItemSelect,
-  focusRequest,
-  controlsEnabled,
+  interaction,
   onWallFocus,
   onDeskFocus,
   onChildhoodActivate,
   onPhotoSelect,
   photoLightboxEnabled,
 }: {
-  activeDeskItem: DeskSelection | null;
   onDeskItemSelect: (item: DeskSelection) => void;
-  focusRequest: RoomFocusRequest | null;
-  controlsEnabled: boolean;
-  onWallFocus: (id: LeoRoomFocusId) => void;
+  interaction: RoomInteractionController;
+  onWallFocus: (id: import("@/data/leoRoomCamera").LeoRoomFocusId) => void;
   onDeskFocus: () => void;
   onChildhoodActivate: (id: ChildhoodStoryId) => void;
   onPhotoSelect: (photo: PhotoWallImage) => void;
@@ -449,12 +382,15 @@ function EmptyRoom({
       <color attach="background" args={["#02050d"]} />
       <CosmicBackdrop />
       <WindowCosmicExterior />
-      <RoomShell />
-      <CityWindow />
-      <StudioRug />
-      <StudioInterior />
+      <RoomLightingScope>
+      <group onClick={(event) => { event.stopPropagation(); if (event.delta <= 8) interaction.cancelBackground(); }}>
+        <RoomShell />
+        <CityWindow />
+        <StudioRug />
+        <StudioInterior />
+      </group>
       <group {...deskTapHandlers}>
-        <DeskInteractionScope onSelect={onDeskItemSelect} enabled={controlsEnabled}>
+        <DeskInteractionScope onSelect={onDeskItemSelect} enabled={interaction.controlsEnabled}>
           <CentralWorkspace />
         </DeskInteractionScope>
       </group>
@@ -466,8 +402,8 @@ function EmptyRoom({
       />
       <RoomLighting />
       <ContactShadows position={[0, .018, .3]} scale={ROOM.width * .82} opacity={.32} blur={2.3} far={ROOM.height + 1} resolution={512} color="#1c120d" />
-      <RoomCameraControls focusRequest={focusRequest} controlsEnabled={controlsEnabled} />
-      <DeskFocusController selection={activeDeskItem} focusToken={focusRequest} />
+      </RoomLightingScope>
+      <RoomCameraControls interaction={interaction} />
     </>
   );
 }
@@ -484,10 +420,8 @@ function RoomRendered({ onReady }: { onReady?: () => void }) {
 
 export function LeoRoomScene({
   onReady,
-  activeDeskItem,
   onDeskItemSelect,
-  focusRequest,
-  controlsEnabled = true,
+  interaction,
   onWallFocus,
   onDeskFocus,
   onChildhoodActivate,
@@ -495,11 +429,9 @@ export function LeoRoomScene({
   photoLightboxEnabled,
 }: {
   onReady?: () => void;
-  activeDeskItem: DeskSelection | null;
   onDeskItemSelect: (item: DeskSelection) => void;
-  focusRequest: RoomFocusRequest | null;
-  controlsEnabled?: boolean;
-  onWallFocus: (id: LeoRoomFocusId) => void;
+  interaction: RoomInteractionController;
+  onWallFocus: (id: import("@/data/leoRoomCamera").LeoRoomFocusId) => void;
   onDeskFocus: () => void;
   onChildhoodActivate: (id: ChildhoodStoryId) => void;
   onPhotoSelect: (photo: PhotoWallImage) => void;
@@ -508,6 +440,8 @@ export function LeoRoomScene({
   return (
     <Canvas
       shadows
+      frameloop={interaction.content && interaction.content.type !== "desk" ? "demand" : "always"}
+      onPointerMissed={() => interaction.cancelBackground()}
       dpr={[1, 1.5]}
       camera={{ position: CAMERA_POSITION, fov: 48, near: .1, far: 80 }}
       gl={{ antialias: true, alpha: false, stencil: true, powerPreference: "high-performance" }}
@@ -521,17 +455,17 @@ export function LeoRoomScene({
       }}
     >
       <Suspense fallback={null}>
+      <RoomLifeContext.Provider value={interaction}>
       <EmptyRoom
-        activeDeskItem={activeDeskItem}
         onDeskItemSelect={onDeskItemSelect}
-        focusRequest={focusRequest}
-        controlsEnabled={controlsEnabled}
+        interaction={interaction}
         onWallFocus={onWallFocus}
         onDeskFocus={onDeskFocus}
         onChildhoodActivate={onChildhoodActivate}
         onPhotoSelect={onPhotoSelect}
         photoLightboxEnabled={photoLightboxEnabled}
       />
+      </RoomLifeContext.Provider>
       <RoomRendered onReady={onReady} />
       </Suspense>
     </Canvas>

@@ -6,6 +6,8 @@ import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage } from "@/components/LanguageProvider";
 import RippleDistortion from "./RippleDistortion";
 import styles from "./OtherSideEntry.module.css";
+// Keep return controls styled while the room's JS is prewarmed independently.
+import "@/components/leo-room/RoomNavigation.module.css";
 
 const OtherSide = dynamic(() => import("@/components/OtherSide").then(module => module.OtherSide), {
   ssr: false,
