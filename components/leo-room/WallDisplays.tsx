@@ -70,7 +70,7 @@ function JourneyBoard({ onFocus, onChildhoodActivate }: WallDisplaysProps) {
     }
     onFocus("journey");
   });
-  const posterTexture = useTexture("/room/childhood-wall/childhood-entry.png") as THREE.Texture;
+  const posterTexture = useTexture("/room/childhood-wall/childhood-game-home.webp") as THREE.Texture;
 
   useEffect(() => {
     posterTexture.colorSpace = THREE.SRGBColorSpace;

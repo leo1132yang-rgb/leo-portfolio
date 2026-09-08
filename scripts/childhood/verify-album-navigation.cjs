@@ -1,0 +1,30 @@
+const assert=require('node:assert/strict');
+const {chromium}=require('C:/Users/Zachary/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+(async()=>{const browser=await chromium.launch({headless:true,channel:'chrome'});try{
+ const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>localStorage.setItem('leo-childhood-world-v1',JSON.stringify({version:1,layoutVersion:3,scene:'shop',x:605,completed:[]})));
+ await page.goto('http://localhost:3001/other-side',{waitUntil:'networkidle'});await page.getByRole('button',{name:/点击进入我的房间/}).click();await page.getByRole('button',{name:/正在进入房间/}).waitFor({state:'hidden',timeout:90000});
+ await page.mouse.click(335,444);await page.getByRole('button',{name:/探索童年世界/}).click();
+ await page.getByText('共 35 个内容互动',{exact:true}).waitFor();await page.getByText('24 段记忆 · 11 处日常小互动',{exact:true}).waitFor();await page.screenshot({path:'scripts/childhood/interaction-intro.png'});
+ await page.getByRole('button',{name:/PRESS START/}).click();await page.getByRole('complementary',{name:'鸭鸭楼层指引'}).waitFor();await page.waitForTimeout(600);await page.screenshot({path:'scripts/childhood/yaya-floor-directions.png'});
+ await page.keyboard.press('e');await page.getByRole('heading',{name:'鸭鸭羽绒服 · 二楼厨房',exact:true}).waitFor();await page.getByText('→ 继续探索：门后的床铺与仓库',{exact:true}).waitFor();
+ const reopen=async(scene,x,completed=[])=>{
+  await page.getByRole('button',{name:"← 返回 Leo's Room",exact:true}).click();await page.getByRole('dialog',{name:'Leo 的童年像素世界'}).waitFor({state:'hidden'});
+  await page.evaluate(p=>localStorage.setItem('leo-childhood-world-v1',JSON.stringify({version:1,layoutVersion:3,...p})),{scene,x,completed});
+  await page.getByRole('button',{name:/探索童年世界/}).click();await page.getByRole('button',{name:/PRESS START|CONTINUE/}).click();await page.waitForTimeout(400);
+ };
+ await reopen('street',460);await page.keyboard.press('e');await page.waitForTimeout(450);await page.keyboard.press('Space');await page.waitForTimeout(450);await page.keyboard.press('e');
+ await page.getByRole('button',{name:'回看这段互动 →'}).waitFor({timeout:12000});await page.getByRole('button',{name:'回看这段互动 →'}).click();
+ await page.getByRole('dialog',{name:'互动回看'}).waitFor();await page.getByRole('heading',{name:'奶奶的声音',exact:true}).waitFor();
+ assert.equal(await page.locator('nav[aria-label="已发现和未发现的记忆"] button:disabled').count(),23);
+ assert.equal(await page.getByRole('button',{name:'打开原记忆册 →'}).count(),0);await page.screenshot({path:'scripts/childhood/album-no-story-page.png'});
+ await page.keyboard.press('Escape');await page.getByRole('dialog',{name:'互动回看'}).waitFor({state:'hidden'});
+ await reopen('street',220,['arrival','grandma']);await page.getByRole('button',{name:'打开童年记忆册',exact:true}).click();
+ await page.locator('.childhood-reader__segments button').first().waitFor();
+ assert.equal(await page.locator('.childhood-reader__segments button:disabled').count(),17);
+ await page.keyboard.press('Escape');await page.getByRole('button',{name:'菜单',exact:true}).click();await page.getByRole('button',{name:/回看已完成的互动/}).click();await page.getByRole('button',{name:/奶奶的声音/}).click();await page.setViewportSize({width:390,height:844});await page.waitForTimeout(400);await page.screenshot({path:'scripts/childhood/album-mobile.png'});
+ assert(await page.getByRole('button',{name:'返回童年世界',exact:true}).isVisible());await page.getByRole('button',{name:'返回童年世界',exact:true}).click();
+ await page.getByRole('button',{name:"← 返回 Leo's Room",exact:true}).click();
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('leo-childhood-world-v1')));assert.deepEqual(saved.completed,['arrival','grandma']);assert.deepEqual(errors,[]);
+ console.log('PASS: 35 interaction introduction, distinct upstairs/exit guide, kitchen route, completed pageless memory immediately viewable, 24-entry album locks, original story links, nested Escape, mobile album and unchanged saved progress.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});

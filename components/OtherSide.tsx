@@ -19,7 +19,7 @@ const LeoRoomScene = dynamic(() => import("@/components/LeoRoomScene").then((mod
   loading: () => <div className="leo-room__loading">ENTERING ROOM...</div>,
 });
 
-const ChildhoodReadingOverlay = dynamic(() => import("@/components/leo-room/ChildhoodReadingOverlay").then((mod) => mod.ChildhoodReadingOverlay), {
+const ChildhoodGame = dynamic(() => import("@/components/leo-room/childhood/ChildhoodGame"), {
   ssr: false,
 });
 
@@ -71,7 +71,6 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
   const [readingOpen, setReadingOpen] = useState(false);
   const [activeStoryId, setActiveStoryId] = useState<ChildhoodStoryId>("01");
   const [photoLightboxId, setPhotoLightboxId] = useState<string | null>(null);
-  const [childhoodOverlayLoaded, setChildhoodOverlayLoaded] = useState(false);
   const [photoLightboxLoaded, setPhotoLightboxLoaded] = useState(false);
   const [showExploreHint, setShowExploreHint] = useState(true);
   const [isMobileRoom, setIsMobileRoom] = useState(false);
@@ -108,10 +107,6 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
   useEffect(() => {
     switchTrack(readingOpen ? "childhood" : "room");
   }, [readingOpen, switchTrack]);
-
-  useEffect(() => {
-    if (readingOpen) setChildhoodOverlayLoaded(true);
-  }, [readingOpen]);
 
   useEffect(() => {
     if (photoLightboxId) setPhotoLightboxLoaded(true);
@@ -250,6 +245,8 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // Childhood owns its nested menu / story Escape behavior while it is mounted.
+      if (readingOpen) return;
       const isEscape = event.key === "Escape" || event.key === "Esc" || event.key === "ESC" || event.code === "Escape";
       if (!isEscape) return;
       if (event.type === "keyup" && escapeKeyDownHandled.current) {
@@ -362,13 +359,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
         </aside>
       )}
 
-      {childhoodOverlayLoaded && (
-        <ChildhoodReadingOverlay
-          open={readingOpen}
-          activeId={activeStoryId}
-          onClose={closeChildhoodReader}
-        />
-      )}
+      {readingOpen && <ChildhoodGame onClose={closeChildhoodReader} />}
 
       {photoLightboxLoaded && (
         <PhotoLightbox
@@ -382,7 +373,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
       {activeTarget === "childhood" && roomMode === "explore" && !readingOpen && (
         <button type="button" className="leo-room__childhood-hint" onClick={() => openChildhoodReader(activeStoryId)}>
           <span>{cn ? "再次点击入口画面" : "CLICK THE WALL AGAIN"}</span>
-          <b>{cn ? "进入童年故事 →" : "Enter the story →"}</b>
+          <b>{cn ? "探索童年世界 →" : "Explore childhood →"}</b>
         </button>
       )}
 

@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 
 type ChildhoodReadingOverlayProps = {
   open: boolean;
   activeId: ChildhoodStoryId;
   onClose: () => void;
+  allowedPages?: number[];
+  closeLabel?: string;
 };
 
 const STORY_PAGE_COUNT = 18;
@@ -22,22 +24,26 @@ const childhoodStoryPages = Array.from({ length: STORY_PAGE_COUNT }, (_, index) 
 
 type PageDirection = -1 | 1;
 
-export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodReadingOverlayProps) {
+export function ChildhoodReadingOverlay({ open, activeId, onClose, allowedPages, closeLabel }: ChildhoodReadingOverlayProps) {
+  const accessibleIndexes = useMemo(() => childhoodStoryPages.map((_, index) => index).filter(index => !allowedPages || allowedPages.includes(index + 1)), [allowedPages]);
   const initialIndex = useMemo(() => {
     const parsed = Number.parseInt(activeId, 10);
-    if (Number.isNaN(parsed)) return 0;
-    return Math.min(Math.max(parsed - 1, 0), STORY_PAGE_COUNT - 1);
-  }, [activeId]);
+    const requested = Number.isNaN(parsed) ? 0 : Math.min(Math.max(parsed - 1, 0), STORY_PAGE_COUNT - 1);
+    return accessibleIndexes.includes(requested) ? requested : (accessibleIndexes[0] ?? 0);
+  }, [activeId, accessibleIndexes]);
 
   const [pageIndex, setPageIndex] = useState(initialIndex);
   const [previousPageIndex, setPreviousPageIndex] = useState<number | null>(null);
   const [direction, setDirection] = useState<PageDirection>(1);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isPressingPage, setIsPressingPage] = useState(false);
+  const transitionTimer = useRef<number | null>(null);
+  useEffect(() => () => { if (transitionTimer.current !== null) window.clearTimeout(transitionTimer.current); }, []);
   const page = childhoodStoryPages[pageIndex];
   const previousPage = previousPageIndex === null ? null : childhoodStoryPages[previousPageIndex];
-  const canGoPrev = pageIndex > 0;
-  const canGoNext = pageIndex < STORY_PAGE_COUNT - 1;
+  const accessiblePosition = accessibleIndexes.indexOf(pageIndex);
+  const canGoPrev = accessiblePosition > 0;
+  const canGoNext = accessiblePosition < accessibleIndexes.length - 1;
 
   useEffect(() => {
     if (!open) return;
@@ -64,10 +70,7 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
 
   useEffect(() => {
     if (!open) return;
-    const nearbyIndexes = [
-      (pageIndex - 1 + STORY_PAGE_COUNT) % STORY_PAGE_COUNT,
-      (pageIndex + 1) % STORY_PAGE_COUNT,
-    ];
+    const nearbyIndexes = accessibleIndexes.filter(index => Math.abs(accessibleIndexes.indexOf(index) - accessiblePosition) === 1);
     const preloaded = nearbyIndexes.map((index) => {
       const image = new Image();
       image.decoding = "async";
@@ -89,19 +92,19 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
     setIsTransitioning(true);
     setDirection(nextDirection);
     setPreviousPageIndex(pageIndex);
-    setPageIndex((current) => Math.min(Math.max(current + nextDirection, 0), STORY_PAGE_COUNT - 1));
-    window.setTimeout(() => setIsTransitioning(false), PAGE_TRANSITION_MS);
+    setPageIndex(accessibleIndexes[accessiblePosition + nextDirection]);
+    transitionTimer.current = window.setTimeout(() => setIsTransitioning(false), PAGE_TRANSITION_MS);
   };
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "ArrowRight") move(1);
-      if (event.key === "ArrowLeft") move(-1);
+      if (event.key === "ArrowRight") { event.preventDefault(); move(1); }
+      if (event.key === "ArrowLeft") { event.preventDefault(); move(-1); }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, pageIndex]);
+  }, [open, pageIndex, isTransitioning, accessibleIndexes]);
 
   const handleImageClick = (event: MouseEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -121,7 +124,7 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
         <header className="childhood-reader__topbar">
           <div>
             <h2 id="childhood-reader-title">LEO&apos;S CHILDHOOD</h2>
-            <p>从白马李家出发</p>
+            <p>{allowedPages ? `记忆册 · 已解锁 ${accessibleIndexes.length} / 18 页` : "从白马李家出发"}</p>
           </div>
           <div>
             <span className="childhood-reader__page-count" aria-live="polite">
@@ -134,7 +137,7 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
                 {String(pageIndex + 1).padStart(2, "0")} / {STORY_PAGE_COUNT}
               </i>
             </span>
-            <button type="button" onClick={onClose} aria-label="关闭童年故事">×</button>
+            <button type="button" onClick={onClose} aria-label={closeLabel || "关闭童年故事"}>{closeLabel || "×"}</button>
           </div>
         </header>
 
@@ -198,16 +201,18 @@ export function ChildhoodReadingOverlay({ open, activeId, onClose }: ChildhoodRe
             <button
               type="button"
               key={item.id}
+              disabled={!accessibleIndexes.includes(index)}
+              title={accessibleIndexes.includes(index) ? `第 ${item.id} 页` : "探索对应的记忆后解锁"}
               className={index === pageIndex ? "is-active" : index < pageIndex ? "is-read" : ""}
               onClick={() => {
-                if (isTransitioning || index === pageIndex) return;
+                if (isTransitioning || index === pageIndex || !accessibleIndexes.includes(index)) return;
                 setIsTransitioning(true);
                 setDirection(index >= pageIndex ? 1 : -1);
                 setPreviousPageIndex(pageIndex);
                 setPageIndex(index);
-                window.setTimeout(() => setIsTransitioning(false), PAGE_TRANSITION_MS);
+                transitionTimer.current = window.setTimeout(() => setIsTransitioning(false), PAGE_TRANSITION_MS);
               }}
-              aria-label={`第 ${item.id} 页`}
+              aria-label={`第 ${item.id} 页${accessibleIndexes.includes(index) ? "" : "，尚未解锁"}`}
             />
           ))}
         </footer>

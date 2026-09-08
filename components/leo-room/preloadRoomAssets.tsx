@@ -11,7 +11,7 @@ const bottle = "/room/models/runtian-500ml-water-bottle.glb";
 const textures = [
   "/room/leo-cosmic-galaxy.png",
   "/room/leo-central-console-desk.webp",
-  "/room/childhood-wall/childhood-entry.png",
+  "/room/childhood-wall/childhood-game-home.webp",
   "/room/world/originkit-preview.webp", // Static wall preview; no Globe/data initialization.
 ] as const;
 
