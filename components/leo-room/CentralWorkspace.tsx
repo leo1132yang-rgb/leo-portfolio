@@ -217,7 +217,7 @@ function createFujiLabelTexture() {
 }
 
 function WoodMaterial({ texture }: { texture: THREE.Texture }) {
-  return <meshStandardMaterial map={texture} color="#b8aaa0" roughness={.68} metalness={.018} />;
+  return <meshStandardMaterial map={texture} bumpMap={texture} bumpScale={.004} color="#eddbc4" roughness={.42} metalness={.018} />;
 }
 
 function OfficeDesk({ wood }: { wood: THREE.Texture }) {
@@ -275,6 +275,7 @@ function OfficeChair() {
       <RoundedBox args={[w * .76, .16, .11]} radius={.065} smoothness={5} position={[0, chair.seatY + 1.08, .27]} castShadow>
         <meshStandardMaterial color="#6f2f1c" roughness={.5} />
       </RoundedBox>
+      {[-.3, 0, .3].map(x => <RoundedBox key={x} args={[.012, .73, .012]} radius={.004} position={[x * w, chair.seatY + .61, .446]}><meshStandardMaterial color="#794029" roughness={.78} /></RoundedBox>)}
       {[-1, 1].map((side) => (
         <group key={side} position={[side * (w / 2 + .1), chair.seatY + .15, -.02]}>
           <mesh position={[0, .08, .04]} castShadow><boxGeometry args={[.07, .32, .07]} /><meshStandardMaterial color="#17191b" roughness={.38} metalness={.62} /></mesh>
@@ -342,7 +343,7 @@ function CentralMonitor() {
       <RoundedBox args={[.48, .055, .28]} radius={.025} smoothness={3} position={[0, surfaceY + .0275, .02]} castShadow receiveShadow>
         <meshStandardMaterial color="#141619" roughness={.35} metalness={.66} />
       </RoundedBox>
-      <rectAreaLight position={[0, monitor.centerY, monitor.depth + .24]} rotation={[0, 0, 0]} color="#6ecfff" intensity={1.15} width={monitor.width * .78} height={monitor.height * .72} />
+      <rectAreaLight position={[0, monitor.centerY, monitor.depth + .24]} rotation={[0, 0, 0]} color="#ccd5d9" intensity={.35} width={monitor.width * .78} height={monitor.height * .72} />
     </DeskInteractiveItem>
   );
 }
@@ -486,9 +487,9 @@ export function DesktopPC({ groupRef }: { groupRef?: RefObject<THREE.Group | nul
       <RoundedBox args={[DESKTOP_PC_BASE_SIZE.width, DESKTOP_PC_BASE_SIZE.height, DESKTOP_PC_BASE_SIZE.depth]} radius={.065} smoothness={5} castShadow receiveShadow>
         <meshPhysicalMaterial color="#0b0f14" roughness={.28} metalness={.45} transparent opacity={.93} />
       </RoundedBox>
-      <mesh position={[0, .18, .337]}><torusGeometry args={[.17, .018, 12, 40]} /><meshStandardMaterial color="#27c7f4" emissive="#1c9ed1" emissiveIntensity={1.6} toneMapped={false} /></mesh>
-      <mesh position={[0, -.37, .338]}><boxGeometry args={[.2, .035, .01]} /><meshStandardMaterial color="#4fe3ff" emissive="#1fb7d8" emissiveIntensity={1.1} toneMapped={false} /></mesh>
-      <mesh position={[.19, .49, .34]}><circleGeometry args={[.018, 12]} /><meshBasicMaterial color="#68e7ff" toneMapped={false} /></mesh>
+      <mesh position={[0, .18, .337]}><torusGeometry args={[.17, .018, 12, 40]} /><meshStandardMaterial color="#5b5b52" roughness={.5} metalness={.65} /></mesh>
+      <mesh position={[0, -.37, .338]}><boxGeometry args={[.2, .035, .01]} /><meshStandardMaterial color="#393c39" roughness={.65} /></mesh>
+      <mesh position={[.19, .49, .34]}><circleGeometry args={[.01, 12]} /><meshBasicMaterial color="#e6c394" toneMapped={false} /></mesh>
       <mesh position={[-.315, 0, 0]} rotation={[0, -Math.PI / 2, 0]}><planeGeometry args={[.5, 1.02]} /><meshPhysicalMaterial color="#222a30" roughness={.21} metalness={.1} transparent opacity={.6} /></mesh>
       {Array.from({ length: 9 }, (_, i) => <mesh key={i} position={[0, .615, -.22 + i * .035]}><boxGeometry args={[.38, .003, .011]} /><meshStandardMaterial color="#050607" roughness={.72} /></mesh>)}
     </DeskInteractiveItem>

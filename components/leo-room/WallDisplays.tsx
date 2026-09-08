@@ -4,6 +4,7 @@ import { Html, useTexture } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import styles from "./StudioDisplay.module.css";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
 import { ROOM_LAYOUT } from "@/data/leoRoomDimensions";
@@ -198,14 +199,14 @@ function DigitalLab({ onFocus }: WallDisplaysProps) {
       </mesh>
       <mesh position={[0, 0, .13]}>
         <planeGeometry args={[6.14, 3.0]} />
-        <meshPhysicalMaterial color="#071627" roughness={.13} metalness={.18} clearcoat={.8} clearcoatRoughness={.14} emissive="#0d4f72" emissiveIntensity={hovered ? .85 : .52} />
+        <meshPhysicalMaterial color="#171d20" roughness={.22} metalness={.18} clearcoat={.5} clearcoatRoughness={.24} emissive="#514638" emissiveIntensity={hovered ? .35 : .15} />
       </mesh>
       <mesh position={[0, -1.76, -.05]} castShadow>
         <boxGeometry args={[1.35, .14, .42]} />
         <meshStandardMaterial color="#111315" metalness={.65} roughness={.32} />
       </mesh>
-      <Html transform position={[0, 0, .16]} distanceFactor={1.18} style={{ pointerEvents: "none" }}>
-        <div className={`room-digital-lab${hovered ? " is-hovered" : ""}`}>
+      <Html transform position={[0, 0, .16]} distanceFactor={3.8} style={{ pointerEvents: "none" }}>
+        <div className={styles.display}>
           <header><span>LEO / DIGITAL WORKSPACE</span><i>ONLINE</i></header>
           <h2>DIGITAL LAB</h2>
           <div>{["AI", "VIDEO", "DESIGN", "SYSTEM"].map((item, index) => <b key={item}><em>0{index + 1}</em>{item}</b>)}</div>

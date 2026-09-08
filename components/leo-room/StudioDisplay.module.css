@@ -1,0 +1,7 @@
+.display{width:640px;height:305px;padding:34px 40px;box-sizing:border-box;background:radial-gradient(ellipse at 50% 130%,#60533d 0,transparent 57%),#111a20;color:#eee6d6;font-family:Georgia,serif}
+.display header{display:flex;justify-content:space-between;color:#bda77f;font:10px Arial,sans-serif;letter-spacing:.18em}
+.display header i{font-style:normal;color:#bcb5a3}
+.display h2{margin:46px 0 34px;text-align:center;font-size:44px;letter-spacing:.025em;font-weight:400}
+.display>div{display:flex;justify-content:center;gap:30px;border-top:1px solid #bda77f40;padding-top:20px}
+.display b{font:11px Arial,sans-serif;letter-spacing:.12em;font-weight:400;color:#d3c5aa}
+.display em{margin-right:7px;color:#897957;font-size:8px;font-style:normal}

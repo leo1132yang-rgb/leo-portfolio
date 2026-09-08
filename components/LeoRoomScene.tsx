@@ -8,6 +8,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 import { RectAreaLightUniformsLib } from "three/examples/jsm/lights/RectAreaLightUniformsLib.js";
 import { CosmicBackdrop, WindowCosmicExterior } from "@/components/leo-room/CosmicBackdrop";
 import { CentralWorkspace } from "@/components/leo-room/CentralWorkspace";
+import { StudioInterior } from "@/components/leo-room/StudioInterior";
 import { DeskFocusController, DeskInteractionScope } from "@/components/leo-room/DeskInteractiveItem";
 import type { DeskSelection } from "@/data/deskItems";
 import { WallDisplays } from "@/components/leo-room/WallDisplays";
@@ -30,8 +31,8 @@ const CAMERA_TARGET = leoRoomOverviewCamera.target;
 type RoomFocusRequest = { id: LeoRoomFocusId | "overview"; nonce: number };
 
 function generatedTexture(kind: "wall" | "wood" | "rug" | "window") {
-  const width = kind === "window" ? 256 : 128;
-  const height = kind === "window" ? 192 : 128;
+  const width = kind === "wood" ? 512 : 256;
+  const height = kind === "window" ? 192 : 256;
   const data = new Uint8Array(width * height * 4);
 
   for (let y = 0; y < height; y += 1) {
@@ -44,22 +45,22 @@ function generatedTexture(kind: "wall" | "wood" | "rug" | "window") {
       if (kind === "wall") {
         const grain = ((x * 17 + y * 31) % 19) - 9;
         const wave = Math.sin(x * .19 + y * .13) * 2.2;
-        red = 43 + grain * .17 + wave;
-        green = 39 + grain * .15 + wave;
-        blue = 36 + grain * .13 + wave;
+        red = 37 + grain * .17 + wave;
+        green = 38 + grain * .15 + wave;
+        blue = 37 + grain * .13 + wave;
       }
 
       if (kind === "wood") {
-        const plankHeight = 21;
+        const plankHeight = 32;
         const row = Math.floor(y / plankHeight);
-        const seam = y % plankHeight < 2;
+        const seam = y % plankHeight === 0 || (x + row * 131) % 512 === 0;
         const offset = row % 2 === 0 ? 0 : 37;
-        const grain = Math.sin((x + offset) * .23 + Math.sin(y * .21) * 2.8) * 10;
-        const fine = Math.sin((x + y * 2.4) * .77) * 3;
+        const grain = Math.sin(y * .7 + Math.sin((x + offset) * .018) * 1.7) * 5;
+        const fine = Math.sin(y * 2.3 + Math.sin(x * .026)) * 2;
         const rowShift = (row % 4) * 3;
-        red = seam ? 48 : 108 + grain + fine + rowShift;
-        green = seam ? 28 : 60 + grain * .45 + fine * .25 + rowShift * .45;
-        blue = seam ? 18 : 31 + grain * .2 + rowShift * .18;
+        red = seam ? 73 : 112 + grain + fine + rowShift;
+        green = seam ? 47 : 76 + grain * .65 + fine * .5 + rowShift * .45;
+        blue = seam ? 31 : 49 + grain * .4 + rowShift * .18;
       }
 
       if (kind === "rug") {
@@ -68,9 +69,9 @@ function generatedTexture(kind: "wall" | "wood" | "rug" | "window") {
         const radius = Math.sqrt(dx * dx + dy * dy);
         const weave = Math.sin((x + y) * 1.65) * 3 + Math.sin((x - y) * 1.35) * 2;
         const variation = ((x * 11 + y * 23) % 9) - 4;
-        red = 143 + weave + variation;
-        green = 124 + weave * .7 + variation * .7;
-        blue = 105 + weave * .5 + variation * .55 + Math.sin(radius * .42) * 1.5;
+        red = 196 + weave + variation;
+        green = 177 + weave * .7 + variation * .7;
+        blue = 145 + weave * .5 + variation * .55 + Math.sin(radius * .42) * 1.5;
       }
 
       if (kind === "window") {
@@ -102,6 +103,9 @@ function generatedTexture(kind: "wall" | "wood" | "rug" | "window") {
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.anisotropy = 4;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
   texture.needsUpdate = true;
   return texture;
 }
@@ -147,7 +151,7 @@ function ArchitecturalBlock({
 
 function RoomShell() {
   const wallTexture = useRoomTexture("wall", [9, 6]);
-  const woodTexture = useRoomTexture("wood", [2.2, 2.65]);
+  const woodTexture = useRoomTexture("wood", [4, 4]);
   const wallMaterial = <meshStandardMaterial map={wallTexture} color="#ffffff" roughness={.9} metalness={0} />;
   const trimMaterial = <meshStandardMaterial color="#211e1c" roughness={.82} metalness={.02} />;
   const { halfWidth, halfDepth, window, ceilingEdgeDepth, ceilingEdgeWidth, baseTrimHeight, baseTrimDepth } = ROOM_STRUCTURE;
@@ -163,7 +167,7 @@ function RoomShell() {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[ROOM.width, ROOM.depth]} />
-        <meshStandardMaterial map={woodTexture} color="#ffffff" roughness={.72} metalness={.015} />
+        <meshStandardMaterial map={woodTexture} color="#ead8bd" roughness={.55} metalness={.015} />
       </mesh>
 
       <ArchitecturalBlock
@@ -236,44 +240,53 @@ function CityWindow() {
   );
 }
 
-function RoundRug() {
-  const rugTexture = useRoomTexture("rug", [4, 4]);
-  const { position, radius } = ROOM_LAYOUT.rug;
+function StudioRug() {
+  const rugTexture = useRoomTexture("rug", [8, 6]);
+  const { position } = ROOM_LAYOUT.rug;
 
   return (
     <group position={position}>
-      <mesh position={[0, .075, 0]} receiveShadow castShadow>
-        <cylinderGeometry args={[radius, radius, .14, 128]} />
-        <meshStandardMaterial map={rugTexture} color="#ffffff" roughness={.98} metalness={0} />
+      <mesh position={[0, .025, .42]} receiveShadow>
+        <boxGeometry args={[5.35, .045, 3.72]} />
+        <meshStandardMaterial map={rugTexture} bumpMap={rugTexture} bumpScale={.009} color="#eee3ce" roughness={1} metalness={0} />
       </mesh>
-      <mesh position={[0, .015, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[radius + .1, 128]} />
-        <meshBasicMaterial color="#1b120d" transparent opacity={.25} depthWrite={false} />
-      </mesh>
+      {[-1, 1].map(side => <group key={side}>
+        <mesh position={[side * 2.59, .049, .42]}><boxGeometry args={[.065, .004, 3.64]} /><meshStandardMaterial color="#9c8460" roughness={1} /></mesh>
+        <mesh position={[0, .049, .42 + side * 1.77]}><boxGeometry args={[5.18, .004, .045]} /><meshStandardMaterial color="#9c8460" roughness={1} /></mesh>
+      </group>)}
     </group>
   );
 }
 
 function CeilingSpot({ x }: { x: number }) {
+  const target = useMemo(() => {
+    const object = new THREE.Object3D();
+    object.position.set(x, 1.8, -ROOM.depth / 2 + .2);
+    return object;
+  }, [x]);
   return (
+    <group>
+    <primitive object={target} />
     <group position={[x, ROOM_LIGHTING.trackY - .2, ROOM_LIGHTING.trackZ]}>
       <mesh castShadow>
         <cylinderGeometry args={[.105, .14, .34, 20]} />
         <meshStandardMaterial color="#171818" roughness={.28} metalness={.7} />
       </mesh>
       <spotLight
+        target={target}
         position={[0, -.18, .02]}
         color="#ffd2a2"
-        intensity={5.4}
+        intensity={9}
         distance={9.5}
-        angle={.43}
+        angle={.65}
         penumbra={.82}
         decay={2}
-        castShadow
+        castShadow={false}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
         shadow-bias={-.0002}
       />
+    </group>
     </group>
   );
 }
@@ -285,11 +298,11 @@ function RoomLighting() {
 
   return (
     <group>
-      <hemisphereLight args={["#9eb9cc", "#5d3824", 1.35]} />
-      <ambientLight color="#d8c4b1" intensity={.55} />
+      <hemisphereLight args={["#c5c7c4", "#654129", .75]} />
+      <ambientLight color="#dfcbb2" intensity={.3} />
 
-      <rectAreaLight position={[0, ROOM.height * .76, .35]} rotation={[-Math.PI / 2, 0, 0]} color="#ffd0a0" intensity={7.6} width={ROOM.width * .55} height={ROOM.depth * .48} />
-      <rectAreaLight position={[ROOM_STRUCTURE.halfWidth - .55, ROOM_STRUCTURE.window.sill + ROOM_STRUCTURE.window.height / 2, ROOM_STRUCTURE.window.centerZ]} rotation={[0, Math.PI / 2, 0]} color="#8cb9dc" intensity={7.1} width={ROOM_STRUCTURE.window.width} height={ROOM_STRUCTURE.window.height} />
+      <rectAreaLight position={[0, ROOM.height * .76, .35]} rotation={[-Math.PI / 2, 0, 0]} color="#ffd0a0" intensity={3.4} width={ROOM.width * .55} height={ROOM.depth * .48} />
+      <rectAreaLight position={[ROOM_STRUCTURE.halfWidth - .55, ROOM_STRUCTURE.window.sill + ROOM_STRUCTURE.window.height / 2, ROOM_STRUCTURE.window.centerZ]} rotation={[0, Math.PI / 2, 0]} color="#adc7da" intensity={1.6} width={ROOM_STRUCTURE.window.width} height={ROOM_STRUCTURE.window.height} />
 
       <mesh position={[0, ROOM_LIGHTING.coveY, ROOM_LIGHTING.backZ]}>
         <boxGeometry args={[ROOM_LIGHTING.backStripLength, .055, .065]} />
@@ -438,7 +451,8 @@ function EmptyRoom({
       <WindowCosmicExterior />
       <RoomShell />
       <CityWindow />
-      <RoundRug />
+      <StudioRug />
+      <StudioInterior />
       <group {...deskTapHandlers}>
         <DeskInteractionScope onSelect={onDeskItemSelect} enabled={controlsEnabled}>
           <CentralWorkspace />
@@ -502,7 +516,7 @@ export function LeoRoomScene({
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.46;
+        gl.toneMappingExposure = 1.25;
         camera.lookAt(...CAMERA_TARGET);
       }}
     >
