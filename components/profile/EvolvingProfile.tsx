@@ -20,8 +20,6 @@ export function EvolvingProfile() {
     const root = page.current;
     if (!list || !root) return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const stages = Array.from(list.querySelectorAll<HTMLElement>("[data-timeline-entry]"));
-    let activeStage: HTMLElement | undefined;
     let frame = 0;
     let disposed = false;
     const update = () => {
@@ -30,17 +28,8 @@ export function EvolvingProfile() {
       const readingLine = window.innerHeight * .55;
       const progress = Math.max(0, Math.min(1, (readingLine - bounds.top) / Math.max(1, bounds.height)));
       list.style.setProperty("--progress", String(progress));
-      // Share the existing scroll measurement with the reading highlight.
-      // CURRENT remains the employment status, independent of the stage in view.
-      const nextStage = stages.find(stage => {
-        const rect = stage.getBoundingClientRect();
-        return rect.top <= readingLine && rect.bottom > readingLine;
-      });
-      if (nextStage !== activeStage) {
-        activeStage?.removeAttribute("data-reading-active");
-        nextStage?.setAttribute("data-reading-active", "true");
-        activeStage = nextStage;
-      }
+      // A single continuous position across all chapters, independent of row boundaries.
+      list.style.setProperty("--reading-y", `${readingLine - bounds.top}px`);
     };
     const schedule = () => {
       if (!disposed && !frame && !document.hidden) frame = requestAnimationFrame(update);
@@ -78,7 +67,6 @@ export function EvolvingProfile() {
     motion.addEventListener("change", syncMotion);
     return () => {
       disposed = true;
-      activeStage?.removeAttribute("data-reading-active");
       cancelAnimationFrame(frame);
       reveal.disconnect(); resize.disconnect(); currentVisibility.disconnect();
       window.removeEventListener("scroll", schedule);
