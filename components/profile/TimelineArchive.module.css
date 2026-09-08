@@ -126,6 +126,13 @@
 .node::after { content: ""; position: absolute; inset: -4px; border: 1px solid #bda57838; border-radius: 50%; opacity: 0; transform: scale(.8); }
 .current .node::after { opacity: .25; }
 .currentBadge { transition: color .4s; }
+.date, .chapter b { transition: color .25s ease, text-shadow .25s ease; }
+.entry[data-reading-active="true"] .date,
+.entry[data-reading-active="true"] .chapter b { color: #f5d5a0; text-shadow: 0 0 22px #d6b47b30; }
+.entry[data-reading-active="true"]::before { width: 2px; opacity: 1; background: linear-gradient(transparent, #d5b27b 15%, #d5b27b99 85%, transparent); }
+.entry[data-reading-active="true"] .node { background: #f2cf98; border-color: #ffe3b7; box-shadow: 0 0 0 4px #c7a46e18, 0 0 18px #dab57b66; }
+.entry[data-reading-active="true"] .entryContent { border-top-color: #cbb38b80; background-color: #bfa77c0c; }
+.entry[data-reading-active="true"] h3 { color: #f1e1c5; }
 .focusList li, .capabilityList > div { position: relative; transition: border-color .3s, background-color .3s, transform .3s; }
 .focusList li > span, .focusList h3, .capabilityList .annotation, .capabilityList h3 { transition: color .25s, transform .25s; }
 .capabilityList > div::before { content: ""; position: absolute; inset: -1px -12px -12px; border-radius: 2px; background: radial-gradient(ellipse at 15% 0, #ba9c6812, transparent 80%); opacity: 0; transition: opacity .3s; pointer-events: none; }

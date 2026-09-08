@@ -20,16 +20,30 @@ export function EvolvingProfile() {
     const root = page.current;
     if (!list || !root) return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const stages = Array.from(list.querySelectorAll<HTMLElement>("[data-timeline-entry]"));
+    let activeStage: HTMLElement | undefined;
     let frame = 0;
     let disposed = false;
     const update = () => {
       frame = 0;
       const bounds = list.getBoundingClientRect();
-      const progress = Math.max(0, Math.min(1, (window.innerHeight * .55 - bounds.top) / bounds.height));
+      const readingLine = window.innerHeight * .55;
+      const progress = Math.max(0, Math.min(1, (readingLine - bounds.top) / Math.max(1, bounds.height)));
       list.style.setProperty("--progress", String(progress));
+      // Share the existing scroll measurement with the reading highlight.
+      // CURRENT remains the employment status, independent of the stage in view.
+      const nextStage = stages.find(stage => {
+        const rect = stage.getBoundingClientRect();
+        return rect.top <= readingLine && rect.bottom > readingLine;
+      });
+      if (nextStage !== activeStage) {
+        activeStage?.removeAttribute("data-reading-active");
+        nextStage?.setAttribute("data-reading-active", "true");
+        activeStage = nextStage;
+      }
     };
     const schedule = () => {
-      if (!disposed && !frame && !document.hidden && !motion.matches) frame = requestAnimationFrame(update);
+      if (!disposed && !frame && !document.hidden) frame = requestAnimationFrame(update);
     };
     const syncMotion = () => {
       cancelAnimationFrame(frame); frame = 0;
@@ -64,6 +78,7 @@ export function EvolvingProfile() {
     motion.addEventListener("change", syncMotion);
     return () => {
       disposed = true;
+      activeStage?.removeAttribute("data-reading-active");
       cancelAnimationFrame(frame);
       reveal.disconnect(); resize.disconnect(); currentVisibility.disconnect();
       window.removeEventListener("scroll", schedule);
@@ -71,7 +86,7 @@ export function EvolvingProfile() {
       document.removeEventListener("visibilitychange", visibility);
       motion.removeEventListener("change", syncMotion);
     };
-  }, []);
+  }, [language]);
 
   return <div ref={page} className={styles.page} data-profile-render="profile-editorial-archive" data-language={language} lang={language === "cn" ? "zh-CN" : "en"} data-profile-source="components/profile/EvolvingProfile.tsx">
     <TimelineAtmosphere currentStage={currentStage} />
