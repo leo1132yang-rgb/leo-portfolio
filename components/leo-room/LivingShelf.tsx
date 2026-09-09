@@ -1,6 +1,5 @@
 "use client";
 import { RoomHover } from './RoomHover';
-import { Html } from '@react-three/drei';
 import { useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import * as THREE from 'three';
@@ -49,7 +48,6 @@ export function LivingShelf({wood}:{wood:THREE.Texture}) {
     onPointerDown={e=>{e.stopPropagation();down.current=[e.clientX,e.clientY];}}
     onClick={(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();const p=down.current;down.current=null;if(p&&e.delta<=8&&Math.hypot(e.clientX-p[0],e.clientY-p[1])<=8)life.interactLivingShelf(id);}}><RoomHover>{children}</RoomHover></group>;
   const active=life.objectsEnabled?(life.readingBook ? "book" : life.activeLivingShelfItem):null;
-  const label=active==='lamp'?(life.shelfLampOn?'关灯':'开灯'):active==='vinyl'?(vinylWantsPlay?(language==='cn'?'暂停唱片':'Pause'):(language==='cn'?'播放唱片':'Play')):active==='drawer'?(life.drawerOpen?'关闭抽屉':'打开抽屉'):'查看';
   return <group ref={root} position={[-3.05,0,-3.43]} name="living-shelf">
     <Block size={[4.05,.06,.63]} at={[0,.76,0]} wood={wood}/><Block size={[4.05,.06,.6]} at={[0,.16,0]} wood={wood}/>
     <Block size={[4,.55,.035]} at={[0,.46,-.28]}/>
@@ -61,12 +59,7 @@ export function LivingShelf({wood}:{wood:THREE.Texture}) {
     {hit('plant',<Plant at={[-.62,.8,0]} scale={.4} living/>)}
     {hit('vinyl',<Vinyl wood={wood}/>)}
     {hit('book',<ReadingBook/>)}<Books at={[.07,.8,0]} count={3}/>
-    {active && active!=='plant' && (size.width<768 || (active==='book'&&life.readingBook)) && <Html position={[positions[active][0],positions[active][1]+.25,.38]} center zIndexRange={[44,44]}>
-      <button type="button" data-vinyl-hint={active==='vinyl'?true:undefined} className={styles.livingHint} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();life.interactLivingShelf(active);}}>
-        {active==='book'&&life.readingBook?<><small>正在读</small>《{reading.title}》<small>{reading.author}</small></>:active==='vinyl'&&vinylWantsPlay?<><small>{language==='cn'?'黑胶':'VINYL'}</small>{vinylTrack.title}<small>{label}</small></>:label}
-        {size.width>=768&&<kbd>E</kbd>}
-      </button>
-    </Html>}
+
   </group>;
 }
 function LocalLamp(){

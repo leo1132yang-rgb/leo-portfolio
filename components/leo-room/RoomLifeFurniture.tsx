@@ -1,4 +1,5 @@
 "use client";
+import { useRoomMobile } from "./useRoomMobile";
 import { RoomHover } from "./RoomHover";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef, type ReactNode } from "react";
@@ -8,6 +9,7 @@ import { useRoomLife } from "./RoomLifeContext";
 import styles from "./RoomNavigation.module.css";
 
 export function ChairMotion({children}:{children:ReactNode}) {
+  const mobile=useRoomMobile();
   const life=useRoomLife(), latest=useRef(life);latest.current=life;
   const ref=useRef<THREE.Group>(null), {camera,size,gl}=useThree();
   const drag=useRef<{id:number;px:number;x:number;pixels:number}|null>(null);
@@ -29,7 +31,7 @@ export function ChairMotion({children}:{children:ReactNode}) {
   },[gl]);
   useEffect(()=>{if(!life?.chairDragging)drag.current=null;},[life?.chairDragging]);
   const down=(e:ThreeEvent<PointerEvent>)=>{
-    e.stopPropagation();if(!life?.objectsEnabled)return;
+    e.stopPropagation();if(!life?.objectsEnabled||mobile||e.nativeEvent.pointerType==="touch")return;
     const x=life.chairX, z=CENTRAL_WORKSPACE.chair.position[2]+CENTRAL_WORKSPACE.position[2];
     const a=new THREE.Vector3(x,.7,z).project(camera), b=new THREE.Vector3(x+1,.7,z).project(camera);
     const pixels=(b.x-a.x)*size.width/2;
@@ -38,7 +40,7 @@ export function ChairMotion({children}:{children:ReactNode}) {
   };
   return <group ref={ref} name="office-chair-rail" onPointerDown={down}
     onPointerOver={e=>e.stopPropagation()}
-    onClick={e=>e.stopPropagation()}>
+    onClick={e=>{e.stopPropagation();if(mobile&&e.delta<=8)life?.showMicroHint("chair");}}>
     <RoomHover>{children}</RoomHover>
   </group>;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { WindowVista } from "./WindowVista";
+import { useRoomMobile } from "./useRoomMobile";
 import { useTexture } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -352,6 +354,7 @@ function StarField({ reducedMotion }: { reducedMotion: boolean }) {
 }
 
 export function CosmicBackdrop() {
+  const mobile=useRoomMobile();
   const reducedMotion = useReducedMotion();
 
   return (
@@ -367,8 +370,8 @@ export function CosmicBackdrop() {
         />
       </mesh>
       <GalaxyImageBackdrop />
-      <NebulaLayer reducedMotion={reducedMotion} />
-      <GalaxyVeil reducedMotion={reducedMotion} />
+      {!mobile && <NebulaLayer reducedMotion={reducedMotion} />}
+      {!mobile && <GalaxyVeil reducedMotion={reducedMotion} />}
       <StarField reducedMotion={reducedMotion} />
       <FloatingRoomAura />
     </group>
@@ -388,6 +391,7 @@ export function WindowCosmicExterior() {
 
   return (
     <group name="window-exterior-group">
+      <WindowVista />
       <mesh
         position={[ROOM_STRUCTURE.halfWidth + 5.2, centerY + .18, ROOM_STRUCTURE.window.centerZ + .08]}
         rotation={[0, -Math.PI / 2, 0]}

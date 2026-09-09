@@ -29,11 +29,13 @@ const free=()=>{assert.equal(interaction.interactionState,'FREE_EXPLORE');assert
 const esc=()=>{for(const fn of listeners.get('keydown')||[])fn({key:'Escape',type:'keydown',repeat:false,preventDefault(){},stopImmediatePropagation(){}})};
 async function run(width){
  let vinylIntent=false;
+ const seatedEvents=new Map();const surface={style:{},addEventListener(n,f){if(!seatedEvents.has(n))seatedEvents.set(n,new Set());seatedEvents.get(n).add(f)},removeEventListener(n,f){seatedEvents.get(n)?.delete(f)},setPointerCapture(){},hasPointerCapture(){return false},releasePointerCapture(){}};
  const canvas={style:{},dataset:{},width,height:844,addEventListener(){},removeEventListener(){},getBoundingClientRect:()=>({left:0,top:0,width,height:844}),getContext:()=>({})};
  const gl={domElement:canvas,render(){},setSize(){},setPixelRatio(){},setClearAlpha(){},shadowMap:{},xr:{enabled:false,isPresenting:false,addEventListener(){},removeEventListener(){}},capabilities:{},getPixelRatio:()=>1,dispose(){},forceContextLoss(){},renderLists:{dispose(){}}};
- const root=createRoot(canvas);await root.configure({gl,frameloop:'never',size:{width,height:844,top:0,left:0},camera:{position:[-4.6,7.4,15.7]},onCreated:s=>state=s});await act(async()=>root.render(React.createElement(Harness)));await frame();free();
+ const root=createRoot(canvas);await root.configure({gl,frameloop:'never',size:{width,height:844,top:0,left:0},camera:{position:[-4.6,7.4,15.7]},onCreated:s=>state=s});await act(async()=>root.render(React.createElement(Harness)));await frame();free();await invoke(()=>state.setEvents({connected:surface}));
  await invoke(()=>interaction.focusHotspot('bookshelf'));await frame();assert.equal(interaction.interactionState,'FOCUSED');assert.equal(interaction.activeHotspot,'bookshelf');assert(pose().target.distanceTo(new THREE.Vector3(5.35,1.62,-3.4))<.01);await invoke(esc);free();await invoke(()=>interaction.resetView());await frame();
 
+ const aquariumPose=pose();await invoke(()=>interaction.toggleAquarium());assert.equal(interaction.aquariumBright,false);assert(equalPose(aquariumPose,pose()));await invoke(()=>interaction.toggleAquarium());assert.equal(interaction.aquariumBright,true);
  await invoke(()=>interaction.registerVinylAction(()=>{vinylIntent=!vinylIntent;}));
  await invoke(()=>interaction.interactLivingShelf('lamp'));assert.equal(interaction.shelfLampOn,false);free();
  await invoke(()=>interaction.interactLivingShelf('lamp'));assert.equal(interaction.shelfLampOn,true);
@@ -46,6 +48,8 @@ async function run(width){
  await invoke(()=>interaction.selectLivingShelfItem('vinyl'));assert.equal(interaction.activeLivingShelfItem,'vinyl');
  await invoke(()=>interaction.selectLivingShelfItem('lamp'));assert.equal(interaction.activeLivingShelfItem,'lamp');
  await invoke(()=>interaction.selectLivingShelfItem(null));
+ let dismissed=0;const unregisterDismiss=interaction.registerTransientDismiss(()=>{dismissed++;return true;});
+ await invoke(()=>interaction.interactLivingShelf('drawer'));const drawerBeforeEscape=interaction.drawerOpen;await invoke(esc);assert.equal(dismissed,1);assert.equal(interaction.drawerOpen,drawerBeforeEscape,'playlist ESC leaked into drawer');unregisterDismiss();await invoke(esc);assert.equal(interaction.drawerOpen,false);
  console.log('PASS Living Shelf: independent state, single selection, drawer ESC, book background close, free camera, vinyl persistence');
  const initial=pose();
  await invoke(()=>interaction.focusHotspot('journey'));assert.equal(interaction.interactionState,'FOCUSING');assert.equal(interaction.previousCameraSnapshot.current.rotation.length,4);await frame(12);
@@ -69,16 +73,18 @@ async function run(width){
  for(let i=0;i<10;i++)await invoke(()=>interaction.toggleLighting());assert.equal(interaction.lightingMode,'ROOM_LIGHT_OFF');
  await invoke(()=>interaction.beginChairDrag());assert.equal(orbit.enabled,false);const dragPose=pose();await invoke(()=>interaction.moveChair(999));assert.equal(interaction.chairX,1.505);await frame(20);assert(equalPose(dragPose,pose()),'chair moved camera');await invoke(()=>interaction.endChairDrag());free();
  const chairX=interaction.chairX;await invoke(()=>interaction.openContent({type:'childhood'}));await invoke(esc);free();assert.equal(interaction.chairX,chairX);assert.equal(interaction.lightingMode,'ROOM_LIGHT_OFF');
- await invoke(()=>interaction.sitDown());assert.equal(interaction.interactionState,'APPROACHING_SEAT');await frame(120);assert.equal(interaction.interactionState,'SITTING');assert.equal(orbit.enabled,false);assert.equal(state.raycaster.layers.mask,0);assert(Math.abs(state.camera.position.y-1.475)<.002,'wrong seated eye height');
+ await invoke(()=>interaction.sitDown());assert.equal(interaction.interactionState,'APPROACHING_SEAT');await frame(width<768?160:120);assert.equal(interaction.interactionState,'SITTING');assert.equal(orbit.enabled,false);assert.equal(state.raycaster.layers.mask,0);assert(Math.abs(state.camera.position.y-1.475)<.002,'wrong seated eye height');
  await invoke(()=>interaction.interactLivingShelf('drawer'));assert.equal(interaction.drawerOpen,false);assert.equal(vinylIntent,true);
+ const seatBeforePointer=pose();
+ await invoke(()=>{for(const f of seatedEvents.get('pointerdown')||[])f({pointerId:7,clientX:100,clientY:100});for(const f of seatedEvents.get('pointermove')||[])f({pointerId:7,clientX:220,clientY:145});for(const f of seatedEvents.get('pointerup')||[])f({pointerId:7});});await frame(60);assert(!equalPose(pose(),seatBeforePointer),'seated pointer drag failed');assert(pose().pos.distanceTo(seatBeforePointer.pos)<.0001,'seated pointer moved eye');
  const seatedPose=pose();await invoke(()=>interaction.openContent({type:'world'}));await invoke(()=>interaction.focusHotspot('desk'));await invoke(()=>interaction.resetView());assert.equal(interaction.interactionState,'SITTING');
  for(let i=0;i<60;i++)await invoke(()=>{for(const fn of listeners.get('keydown'))fn({key:'ArrowLeft',type:'keydown',preventDefault(){},stopImmediatePropagation(){}})});await frame(60);assert(pose().pos.distanceTo(seatedPose.pos)<.0001,'look moved seated eye');assert(!equalPose(pose(),seatedPose),'look did not turn');
  await invoke(()=>state.setSize(width<768?1280:390,844));await frame(30);assert.equal(interaction.interactionState,'SITTING');assert(pose().pos.distanceTo(seatedPose.pos)<.0001,'resize moved seated eye');assert.equal(orbit.enabled,false);await invoke(()=>state.setSize(width,844));await frame(30);
- await invoke(esc);assert.equal(interaction.interactionState,'STANDING_UP');await frame(90);free();assert.equal(interaction.lightingMode,'ROOM_LIGHT_OFF');assert.equal(interaction.chairX,chairX);assert.equal(state.raycaster.layers.mask,1);
- await invoke(()=>interaction.sitDown());await frame(20);await invoke(esc);await frame(100);free();
+ await invoke(esc);assert.equal(interaction.interactionState,'STANDING_UP');await frame(width<768?120:90);free();assert.equal(interaction.lightingMode,'ROOM_LIGHT_OFF');assert.equal(interaction.chairX,chairX);assert.equal(state.raycaster.layers.mask,1);
+ await invoke(()=>interaction.sitDown());await frame(20);await invoke(esc);await frame(width<768?135:100);free();
  await act(async()=>new Promise(resolve=>setTimeout(resolve,850)));await invoke(()=>interaction.toggleLighting());assert.equal(interaction.lightingMode,'ROOM_LIGHT_ON');
  console.log('PASS life: light debounce, chair clamp/lock/persistence, seated eye, fixed-eye look, hotspot priority, stand/unlock, interrupted sit');
  await act(async()=>root.unmount());assert.equal(listeners.get('keydown').size,0,'keyboard listener leaked');assert.equal(listeners.get('keyup').size,0,'keyup listener leaked');
  console.log('PASS '+width+'px: snapshot restore, focused ESC, all four modules x3, nearby unlock, interrupted desk, stale completion, background cancel, gesture takeover, RESET, ESC free, listener cleanup');
 }
-(async()=>{await run(1280);await run(390)})().catch(e=>{console.error(e);process.exitCode=1});
+(async()=>{await run(1280);await run(320);await run(360);await run(390);await run(430)})().catch(e=>{console.error(e);process.exitCode=1});

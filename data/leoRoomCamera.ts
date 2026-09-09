@@ -26,7 +26,7 @@ export const leoRoomOverviewCamera: LeoRoomCameraTarget = {
 };
 
 export const leoRoomMobileOverviewCamera: LeoRoomCameraTarget = {
-  position: [-4.9, 7.8, 16.9],
+  position: [-8, 12.5, 28],
   target: [0, 1.06, -.35],
 };
 
@@ -35,19 +35,19 @@ export const leoRoomExploreProfiles: Record<"desktop" | "mobile", LeoRoomExplore
     fov: 48,
     minDistance: 2.8,
     maxDistance: 18.5,
-    minPolarAngle: .82,
-    maxPolarAngle: 1.54,
-    minAzimuthAngle: -1.02,
-    maxAzimuthAngle: .45,
+    minPolarAngle: .78,
+    maxPolarAngle: 1.48,
+    minAzimuthAngle: -1.12,
+    maxAzimuthAngle: .62,
   },
   mobile: {
     fov: 54,
     minDistance: 4.4,
-    maxDistance: 20.5,
-    minPolarAngle: .78,
-    maxPolarAngle: 1.5,
-    minAzimuthAngle: -1.18,
-    maxAzimuthAngle: .58,
+    maxDistance: 34,
+    minPolarAngle: .86,
+    maxPolarAngle: 1.43,
+    minAzimuthAngle: -1.0,
+    maxAzimuthAngle: .5,
   },
 };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRoomMobile } from "./useRoomMobile";
 import { CameraControls, type CameraControlsImpl } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
@@ -10,8 +11,9 @@ import type { RoomCameraDriver, RoomInteractionController } from "./useRoomInter
 
 export function RoomCameraControls({ interaction }: { interaction: RoomInteractionController }) {
   const ref = useRef<CameraControlsImpl>(null);
-  const { camera, size, gl, raycaster } = useThree();
-  const mobile = size.width < 768;
+  const { camera, size, gl, raycaster, events } = useThree();
+  const touchMobile = useRoomMobile();
+  const mobile = size.width < 768 || touchMobile;
   const profile = mobile ? leoRoomExploreProfiles.mobile : leoRoomExploreProfiles.desktop;
   const viewport = useRef({ mobile, profile });
   viewport.current = { mobile, profile };
@@ -40,6 +42,8 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
       void orbit.setLookAt(...pos.toArray(),...target.toArray(),false);orbit.update(0);
       if(t===1){animation.current=null;seated.current=a.sitting;a.resolve();}
     } else if (seated.current) {
+      gl.domElement.dataset.seatEye=seatEye.toArray().map(v=>v.toFixed(4)).join(",");
+      gl.domElement.dataset.seatLook=[look.current.yaw,look.current.pitch].map(v=>v.toFixed(4)).join(",");
       const l=look.current;l.shownYaw=THREE.MathUtils.damp(l.shownYaw,l.yaw,12,delta);l.shownPitch=THREE.MathUtils.damp(l.shownPitch,l.pitch,12,delta);
       const direction=seatTarget.clone().sub(seatEye).normalize();
       const yaw=Math.atan2(direction.x,direction.z)+l.shownYaw;
@@ -49,15 +53,15 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
     }
   });
   useEffect(() => {
-    const canvas=gl.domElement;
+    const canvas=events.connected || gl.domElement;
     let pointer: {id:number;x:number;y:number} | null=null;
     const down=(e:PointerEvent)=>{if(!seated.current||pointer)return;pointer={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);};
-    const move=(e:PointerEvent)=>{if(!seated.current||pointer?.id!==e.pointerId)return;look.current.yaw=THREE.MathUtils.clamp(look.current.yaw-(e.clientX-pointer.x)*.0025,-ROOM_LIFE.lookYaw,ROOM_LIFE.lookYaw);look.current.pitch=THREE.MathUtils.clamp(look.current.pitch+(e.clientY-pointer.y)*.002,-ROOM_LIFE.lookPitch,ROOM_LIFE.lookPitch);pointer.x=e.clientX;pointer.y=e.clientY;};
+    const move=(e:PointerEvent)=>{if(!seated.current||pointer?.id!==e.pointerId)return;look.current.yaw=THREE.MathUtils.clamp(look.current.yaw-(e.clientX-pointer.x)*(viewport.current.mobile?.004:.0032),-ROOM_LIFE.lookYaw*(viewport.current.mobile?.8:1),ROOM_LIFE.lookYaw*(viewport.current.mobile?.8:1));look.current.pitch=THREE.MathUtils.clamp(look.current.pitch+(e.clientY-pointer.y)*.0025,-ROOM_LIFE.lookPitch*(viewport.current.mobile?.8:1),ROOM_LIFE.lookPitch*(viewport.current.mobile?.8:1));pointer.x=e.clientX;pointer.y=e.clientY;};
     const up=(e:PointerEvent)=>{if(pointer?.id===e.pointerId){pointer=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);}};
     const key=(e:KeyboardEvent)=>{if(!seated.current||!e.key.startsWith("Arrow"))return;e.preventDefault();if(e.key==="ArrowLeft"||e.key==="ArrowRight")look.current.yaw=THREE.MathUtils.clamp(look.current.yaw+(e.key==="ArrowLeft"?.035:-.035),-ROOM_LIFE.lookYaw,ROOM_LIFE.lookYaw);else look.current.pitch=THREE.MathUtils.clamp(look.current.pitch+(e.key==="ArrowUp"?.025:-.025),-ROOM_LIFE.lookPitch,ROOM_LIFE.lookPitch);};
-    canvas.addEventListener("pointerdown",down);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",up);canvas.addEventListener("pointercancel",up);window.addEventListener("keydown",key);
-    return()=>{canvas.removeEventListener("pointerdown",down);canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerup",up);canvas.removeEventListener("pointercancel",up);window.removeEventListener("keydown",key);};
-  },[gl]);
+    canvas.addEventListener("pointerdown",down,true);canvas.addEventListener("pointermove",move,true);canvas.addEventListener("pointerup",up,true);canvas.addEventListener("pointercancel",up,true);window.addEventListener("keydown",key);
+    return()=>{canvas.removeEventListener("pointerdown",down,true);canvas.removeEventListener("pointermove",move,true);canvas.removeEventListener("pointerup",up,true);canvas.removeEventListener("pointercancel",up,true);window.removeEventListener("keydown",key);};
+  },[gl,events.connected]);
   useEffect(()=>{const mask=raycaster.layers.mask;if(interaction.seatActive)raycaster.layers.mask=0;return()=>{raycaster.layers.mask=mask;};},[interaction.seatActive,raycaster]);
   const gestureTaken = useRef(false);
   const { registerCamera, controlsEnabled, takeCameraControl } = interaction;
@@ -85,7 +89,7 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
       orbit.maxDistance = profile.maxDistance;
       orbit.minPolarAngle = profile.minPolarAngle; orbit.maxPolarAngle = profile.maxPolarAngle;
       orbit.minAzimuthAngle = profile.minAzimuthAngle; orbit.maxAzimuthAngle = profile.maxAzimuthAngle;
-      orbit.smoothTime = .76;
+      orbit.smoothTime = viewport.current.mobile ? .42 : .48;
     };
     const freeze = () => {
       if (animation.current) { animation.current.resolve(); animation.current=null; }
@@ -111,7 +115,7 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
       freeze(); orbit.enabled=false; orbit.minDistance=.01; orbit.maxDistance=80;
       orbit.minAzimuthAngle=-Infinity;orbit.maxAzimuthAngle=Infinity;orbit.minPolarAngle=0;orbit.maxPolarAngle=Math.PI;
       look.current={yaw:0,pitch:0,shownYaw:0,shownPitch:0};
-      return new Promise<void>(resolve=>{animation.current={elapsed:0,duration:reduced()?.01:(sitting?ROOM_LIFE.sitDuration:ROOM_LIFE.standDuration),from:camera.position.clone(),fromTarget:orbit.getTarget(new THREE.Vector3(),false),to:sitting?seatEye.clone():new THREE.Vector3(...ROOM_LIFE.standPosition),target:sitting?seatTarget.clone():new THREE.Vector3(...ROOM_LIFE.standTarget),mid:sitting?new THREE.Vector3(...ROOM_LIFE.standPosition):undefined,midTarget:sitting?new THREE.Vector3(4.7,1.3,.2):undefined,fromFov:camera.fov,toFov:sitting?58:profile.fov,resolve,sitting};});
+      return new Promise<void>(resolve=>{animation.current={elapsed:0,duration:reduced()?.01:(sitting?ROOM_LIFE.sitDuration:ROOM_LIFE.standDuration)*(viewport.current.mobile?1.3:1),from:camera.position.clone(),fromTarget:orbit.getTarget(new THREE.Vector3(),false),to:sitting?seatEye.clone():new THREE.Vector3(...ROOM_LIFE.standPosition),target:sitting?seatTarget.clone():new THREE.Vector3(...ROOM_LIFE.standTarget),mid:sitting?new THREE.Vector3(...ROOM_LIFE.standPosition):undefined,midTarget:sitting?new THREE.Vector3(4.7,1.3,.2):undefined,fromFov:camera.fov,toFov:sitting?58:profile.fov,resolve,sitting};});
     };
     const driver: RoomCameraDriver = {
       lock: () => { freeze(); orbit.enabled=false; },
@@ -173,10 +177,10 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
     if (ref.current) ref.current.enabled = controlsEnabled;
     if (process.env.NODE_ENV === "development") gl.domElement.dataset.roomControls = String(controlsEnabled);
   }, [controlsEnabled, interaction.content, gl]);
-  return <CameraControls ref={ref} makeDefault enabled={controlsEnabled} smoothTime={.76} draggingSmoothTime={.12}
+  return <CameraControls ref={ref} makeDefault enabled={controlsEnabled} smoothTime={mobile?.42:.48} draggingSmoothTime={mobile?.18:.15}
     minDistance={profile.minDistance} maxDistance={profile.maxDistance} minPolarAngle={profile.minPolarAngle} maxPolarAngle={profile.maxPolarAngle}
     minAzimuthAngle={profile.minAzimuthAngle} maxAzimuthAngle={profile.maxAzimuthAngle}
-    azimuthRotateSpeed={mobile ? .55 : .45} polarRotateSpeed={mobile ? .42 : .38} dollySpeed={.38} truckSpeed={0} dollyToCursor={false} infinityDolly={false}
+    azimuthRotateSpeed={mobile ? .32 : .4} polarRotateSpeed={mobile ? .26 : .34} dollySpeed={.38} truckSpeed={0} dollyToCursor={false} infinityDolly={false}
     onControlStart={() => { gestureTaken.current = false; }}
     onControl={() => { if (!gestureTaken.current) { gestureTaken.current = true; takeCameraControl(); } }}
     onControlEnd={() => { gestureTaken.current = false; }} />;

@@ -1,7 +1,7 @@
 "use client";
 
 import { Html, useTexture } from "@react-three/drei";
-import type { ThreeEvent } from "@react-three/fiber";
+import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { TelevisionScreen } from "./TelevisionScreen";
@@ -102,10 +102,11 @@ function JourneyBoard({ onFocus, onChildhoodActivate }: WallDisplaysProps) {
   );
 }
 
-function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplaysProps) {
+function PhotoWall({ onPhotoSelect }: WallDisplaysProps) {
   const textures = useTexture(photoPaths) as THREE.Texture[];
-  const { hovered, handlers } = useInteractiveWall(() => onFocus("gallery"));
+  const { gl } = useThree();
   const [hoveredPhotoId, setHoveredPhotoId] = useState<string | null>(null);
+  useEffect(() => { if (!hoveredPhotoId) return; const previous=gl.domElement.style.cursor;gl.domElement.style.cursor="pointer";return()=>{gl.domElement.style.cursor=previous;}; },[gl,hoveredPhotoId]);
   const photoPointerRef = useRef<{ id: string; x: number; y: number; dragged: boolean } | null>(null);
 
   useEffect(() => {
@@ -117,11 +118,7 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
   }, [textures]);
 
   return (
-    <group position={ROOM_LAYOUT.gallery.position} scale={ROOM_LAYOUT.gallery.scale} {...handlers}>
-      <mesh position={[0, 0, -.04]}>
-        <planeGeometry args={[6.55, 3.75]} />
-        <meshBasicMaterial transparent opacity={.001} depthWrite={false} />
-      </mesh>
+    <group position={ROOM_LAYOUT.gallery.position} scale={ROOM_LAYOUT.gallery.scale}>
       {selectedWallPhotos.map(({ slot, photo }, index) => {
         const localX = slot.position[0] * PHOTO_WALL_AREA.width / 2;
         const localY = slot.position[1] * PHOTO_WALL_AREA.height / 2;
@@ -136,6 +133,7 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
         const matte = slot.frame === "metal" ? "#b9b2a5" : "#d5cbb9";
         const photoHandlers = {
           onPointerDown: (event: ThreeEvent<PointerEvent>) => {
+            event.stopPropagation();
             photoPointerRef.current = { id: photo.id, x: event.nativeEvent.clientX, y: event.nativeEvent.clientY, dragged: false };
           },
           onPointerMove: (event: ThreeEvent<PointerEvent>) => {
@@ -147,28 +145,26 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
           },
           onClick: (event: ThreeEvent<MouseEvent>) => {
             event.stopPropagation();
-            if (photoPointerRef.current?.id === photo.id && photoPointerRef.current.dragged) return;
-            if (photoLightboxEnabled) {
-              onPhotoSelect?.(photo);
-              return;
-            }
-            onFocus("gallery");
+            const start=photoPointerRef.current;photoPointerRef.current=null;
+            if(!start||start.id!==photo.id||start.dragged||event.delta>8||Math.hypot(event.nativeEvent.clientX-start.x,event.nativeEvent.clientY-start.y)>8)return;
+            setHoveredPhotoId(null);
+            onPhotoSelect?.(photo);
           },
           onPointerOver: (event: ThreeEvent<PointerEvent>) => {
             event.stopPropagation();
-            setHoveredPhotoId(photo.id);
+            if(event.nativeEvent.pointerType!=="touch")setHoveredPhotoId(photo.id);
           },
           onPointerOut: (event: ThreeEvent<PointerEvent>) => {
             event.stopPropagation();
             setHoveredPhotoId((currentId) => currentId === photo.id ? null : currentId);
           },
         };
-        const photoHovered = hovered || hoveredPhotoId === photo.id;
+        const photoHovered = hoveredPhotoId === photo.id;
         return (
         <group key={photo.id} position={[localX, localY, slot.size === "hero" ? .025 : 0]} rotation={[0, 0, slot.rotation]} {...photoHandlers}>
           <mesh castShadow receiveShadow position={[0, 0, .015]}>
             <boxGeometry args={[width + frameBorder, height + frameBorder, frameDepth]} />
-            <meshStandardMaterial color={frame.color} roughness={frame.roughness} metalness={frame.metalness} />
+            <meshStandardMaterial color={frame.color} emissive="#c49c61" emissiveIntensity={photoHovered?.08:0} roughness={frame.roughness} metalness={frame.metalness} />
           </mesh>
           <mesh position={[0, 0, frameDepth / 2 + .017]}>
             <planeGeometry args={[width + .022, height + .022]} />
@@ -176,7 +172,7 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
           </mesh>
           <mesh position={[0, 0, frameDepth / 2 + .023]}>
             <planeGeometry args={[width, height]} />
-            <meshBasicMaterial map={textures[index]} toneMapped={false} color={photoHovered ? "#ffffff" : "#e6dfd4"} />
+            <meshBasicMaterial map={textures[index]} toneMapped={false} color={photoHovered ? "#ffffff" : "#faf7f2"} />
           </mesh>
         </group>
         );

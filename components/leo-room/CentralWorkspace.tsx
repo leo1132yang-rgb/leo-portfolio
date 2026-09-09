@@ -4,6 +4,7 @@ import { RoundedBox as DreiRoundedBox, useGLTF, useTexture } from "@react-three/
 import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentProps, type RefObject } from "react";
 import * as THREE from "three";
 import { CENTRAL_WORKSPACE, DESK_OBJECT_DIMENSIONS, DESK_PROP_SCALE } from "@/data/leoRoomWorkspace";
+import { DeskAquascape } from "./DeskAquascape";
 import { SculptedDeskPlant } from "./SculptedDeskPlant";
 import { LampPullChain } from "./LampPullChain";
 import { ChairMotion } from "./RoomLifeFurniture";
@@ -511,6 +512,7 @@ export function CentralWorkspace() {
         <CentralMonitor />
         <DeskAccessories />
       </group>
+      <DeskAquascape surfaceY={surfaceY} />
       <DesktopPC groupRef={pcBoundsRef} />
     </group>
   );

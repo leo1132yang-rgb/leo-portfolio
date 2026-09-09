@@ -34,8 +34,10 @@ const FREE: Model = { interactionState: "FREE_EXPLORE", activeHotspot: null, con
 export function useRoomInteractionController() {
   const [model, setModel] = useState<Model>(FREE);
   const current = useRef(model);
-  const [life, setLife] = useState({ lightingMode: "ROOM_LIGHT_ON" as "ROOM_LIGHT_ON" | "ROOM_LIGHT_OFF", lightingBusy: false, chairX: CENTRAL_WORKSPACE.chair.position[0] as number, chairDragging: false, microHint: null as "lamp" | "chair" | "seat" | null });
+  const [life, setLife] = useState({ lightingMode: "ROOM_LIGHT_ON" as "ROOM_LIGHT_ON" | "ROOM_LIGHT_OFF", lightingBusy: false, chairX: CENTRAL_WORKSPACE.chair.position[0] as number, chairDragging: false, aquariumBright:true, microHint: null as "lamp" | "chair" | "seat" | null });
   const [shelf, setShelf] = useState({ shelfLampOn: true, drawerOpen: false, readingBook: false, plantTouch: 0, activeLivingShelfItem: null as LivingShelfItem | null });
+  const transientDismiss=useRef<(()=>boolean)|null>(null);
+  const registerTransientDismiss=useCallback((dismiss:()=>boolean)=>{transientDismiss.current=dismiss;return()=>{if(transientDismiss.current===dismiss)transientDismiss.current=null;};},[]);
   const vinylAction = useRef<(() => void) | null>(null);
   const registerVinylAction = useCallback((action: () => void) => { vinylAction.current=action; return () => { if(vinylAction.current===action)vinylAction.current=null; }; }, []);
   const shelfRef = useRef(shelf);
@@ -44,6 +46,7 @@ export function useRoomInteractionController() {
   const lightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const updateLife = useCallback((patch: Partial<typeof life>) => { lifeRef.current = { ...lifeRef.current, ...patch }; setLife(lifeRef.current); }, []);
   const seatActive = useCallback(() => ["APPROACHING_SEAT", "SITTING", "STANDING_UP"].includes(current.current.interactionState), []);
+  const toggleAquarium=useCallback(()=>{if(current.current.content||seatActive()||lifeRef.current.chairDragging)return;updateLife({aquariumBright:!lifeRef.current.aquariumBright});},[seatActive,updateLife]);
   const toggleLighting = useCallback(() => {
     if (lifeRef.current.lightingBusy || current.current.content || seatActive() || lifeRef.current.chairDragging) return;
     updateLife({ lightingMode: lifeRef.current.lightingMode === "ROOM_LIGHT_ON" ? "ROOM_LIGHT_OFF" : "ROOM_LIGHT_ON", lightingBusy: true });
@@ -159,7 +162,7 @@ export function useRoomInteractionController() {
     if(id==='lamp') updateShelf({shelfLampOn:!before.shelfLampOn});
     if(id==='vinyl') vinylAction.current?.();
     if(id==='drawer') updateShelf({drawerOpen:!before.drawerOpen});
-    if(id==='book') { updateShelf({readingBook:!before.readingBook}); returnToExplore(); }
+    if(id==='book') updateShelf({readingBook:!before.readingBook});
     if(id==='plant') updateShelf({plantTouch:before.plantTouch+1});
   }, [seatActive, updateShelf, returnToExplore]);
   const selectPhoto = useCallback((id: string) => {
@@ -178,6 +181,7 @@ export function useRoomInteractionController() {
         if (lifeRef.current.microHint === "seat") sitDown();
       }
       if (event.key !== "Escape" && event.key !== "Esc" && event.code !== "Escape") return;
+      if(event.type==='keydown' && !event.repeat && !current.current.content && !seatActive() && transientDismiss.current?.()){event.preventDefault();event.stopImmediatePropagation();return;}
       if(event.type==='keydown' && !event.repeat && !current.current.content && !seatActive() && (shelfRef.current.readingBook || shelfRef.current.drawerOpen)) {
         event.preventDefault(); event.stopImmediatePropagation(); updateShelf({readingBook:false,drawerOpen:false}); returnToExplore(); return;
       }
@@ -191,8 +195,8 @@ export function useRoomInteractionController() {
     return () => { ++generation.current; window.removeEventListener("keydown", escape, true); window.removeEventListener("keyup", escape, true); };
   }, [returnToExplore, toggleLighting, sitDown, interactLivingShelf, seatActive, updateShelf]);
 
-  return { ...model, ...life, ...shelf, registerVinylAction, interactLivingShelf, selectLivingShelfItem, seatActive: seatActive(), contentOpen: !!model.content, controlsEnabled: !model.content && !seatActive() && !life.chairDragging, objectsEnabled: !model.content && !seatActive() && !life.chairDragging,
-    toggleLighting, beginChairDrag, endChairDrag, moveChair, showMicroHint, sitDown, standUp, focusTarget: model.activeHotspot, previousCameraSnapshot,
+  return { ...model, ...life, ...shelf, registerTransientDismiss, registerVinylAction, interactLivingShelf, selectLivingShelfItem, seatActive: seatActive(), contentOpen: !!model.content, controlsEnabled: !model.content && !seatActive() && !life.chairDragging, objectsEnabled: !model.content && !seatActive() && !life.chairDragging,
+    toggleAquarium, toggleLighting, beginChairDrag, endChairDrag, moveChair, showMicroHint, sitDown, standUp, focusTarget: model.activeHotspot, previousCameraSnapshot,
     registerCamera, focusHotspot, openContent, returnToExplore, resetView, takeCameraControl, selectPhoto, cancelBackground };
 }
 export type RoomInteractionController = ReturnType<typeof useRoomInteractionController>;

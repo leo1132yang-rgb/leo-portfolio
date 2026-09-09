@@ -17,6 +17,6 @@ export const ROOM_LIFE = {
   standTarget: [5.15, 1.5, .55] as [number, number, number],
   sitDuration: 1.8,
   standDuration: 1.1,
-  lookYaw: 22 * Math.PI / 180,
-  lookPitch: 10 * Math.PI / 180,
+  lookYaw: 42 * Math.PI / 180,
+  lookPitch: 16 * Math.PI / 180,
 } as const;

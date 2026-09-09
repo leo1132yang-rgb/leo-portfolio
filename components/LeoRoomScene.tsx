@@ -1,6 +1,7 @@
 "use client";
 
-import { Canvas, type ThreeEvent } from "@react-three/fiber";
+import { useRoomMobile } from "@/components/leo-room/useRoomMobile";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { ContactShadows } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useRef, type ReactElement } from "react";
 import * as THREE from "three";
@@ -289,6 +290,7 @@ function CeilingSpot({ x }: { x: number }) {
 }
 
 function RoomLighting() {
+  const mobile = useRoomMobile();
   useEffect(() => {
     RectAreaLightUniformsLib.init();
   }, []);
@@ -329,8 +331,8 @@ function RoomLighting() {
         color="#ffd4ad"
         intensity={1.8}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={mobile?512:1024}
+        shadow-mapSize-height={mobile?512:1024}
         shadow-camera-left={-ROOM.width * .56}
         shadow-camera-right={ROOM.width * .56}
         shadow-camera-top={ROOM.width * .56}
@@ -358,6 +360,7 @@ function EmptyRoom({
   onPhotoSelect: (photo: PhotoWallImage) => void;
   photoLightboxEnabled: boolean;
 }) {
+  const mobile=useRoomMobile();
   const deskPointerRef = useRef<{ x: number; y: number; dragged: boolean } | null>(null);
   const deskTapHandlers = {
     onPointerDown: (event: ThreeEvent<PointerEvent>) => {
@@ -401,11 +404,18 @@ function EmptyRoom({
         photoLightboxEnabled={photoLightboxEnabled}
       />
       <RoomLighting />
-      <ContactShadows position={[0, .018, .3]} scale={ROOM.width * .82} opacity={.32} blur={2.3} far={ROOM.height + 1} resolution={512} color="#1c120d" />
+      <ContactShadows position={[0, .018, .3]} scale={ROOM.width * .82} opacity={.32} blur={2.3} far={ROOM.height + 1} resolution={mobile?256:512} color="#1c120d" />
       </RoomLightingScope>
       <RoomCameraControls interaction={interaction} />
     </>
   );
+}
+
+function MobileFrameSample() {
+  const mobile=useRoomMobile(), {gl}=useThree();
+  const sample=useRef({frames:0,seconds:0});
+  useFrame((_,dt)=>{if(!mobile||document.hidden||dt>1)return;const a=sample.current;a.frames++;a.seconds+=dt;if(a.seconds>=2){gl.domElement.dataset.mobileFps=(a.frames/a.seconds).toFixed(1);gl.domElement.dataset.mobileDpr=String(gl.getPixelRatio());a.frames=0;a.seconds=0;}});
+  return null;
 }
 
 function RoomRendered({ onReady }: { onReady?: () => void }) {
@@ -437,12 +447,13 @@ export function LeoRoomScene({
   onPhotoSelect: (photo: PhotoWallImage) => void;
   photoLightboxEnabled: boolean;
 }) {
+  const mobile=useRoomMobile();
   return (
     <Canvas
       shadows
       frameloop={interaction.content && interaction.content.type !== "desk" ? "demand" : "always"}
       onPointerMissed={() => interaction.cancelBackground()}
-      dpr={[1, 1.5]}
+      dpr={mobile?[1,1.25]:[1,1.5]}
       camera={{ position: CAMERA_POSITION, fov: 48, near: .1, far: 80 }}
       gl={{ antialias: true, alpha: false, stencil: true, powerPreference: "high-performance" }}
       onCreated={({ gl, camera }) => {
@@ -466,7 +477,7 @@ export function LeoRoomScene({
         photoLightboxEnabled={photoLightboxEnabled}
       />
       </RoomLifeContext.Provider>
-      <RoomRendered onReady={onReady} />
+      <MobileFrameSample /><RoomRendered onReady={onReady} />
       </Suspense>
     </Canvas>
   );
