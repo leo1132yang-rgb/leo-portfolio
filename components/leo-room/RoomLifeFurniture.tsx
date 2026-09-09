@@ -1,10 +1,9 @@
 "use client";
-import { Html } from "@react-three/drei";
+import { RoomHover } from "./RoomHover";
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { CENTRAL_WORKSPACE } from "@/data/leoRoomWorkspace";
-import { ROOM_LIFE } from "@/data/leoRoomLife";
 import { useRoomLife } from "./RoomLifeContext";
 import styles from "./RoomNavigation.module.css";
 
@@ -31,23 +30,16 @@ export function ChairMotion({children}:{children:ReactNode}) {
   useEffect(()=>{if(!life?.chairDragging)drag.current=null;},[life?.chairDragging]);
   const down=(e:ThreeEvent<PointerEvent>)=>{
     e.stopPropagation();if(!life?.objectsEnabled)return;
-    if(e.pointerType==="touch"||size.width<768){return;}
     const x=life.chairX, z=CENTRAL_WORKSPACE.chair.position[2]+CENTRAL_WORKSPACE.position[2];
     const a=new THREE.Vector3(x,.7,z).project(camera), b=new THREE.Vector3(x+1,.7,z).project(camera);
     const pixels=(b.x-a.x)*size.width/2;
     if(Math.abs(pixels)<8||!life.beginChairDrag())return;
     gl.domElement.setPointerCapture(e.pointerId);drag.current={id:e.pointerId,px:e.nativeEvent.clientX,x,pixels};
   };
-  const hint=life?.microHint==="chair"&&!life.seatActive&&!life.contentOpen;
   return <group ref={ref} name="office-chair-rail" onPointerDown={down}
-    onPointerOver={e=>{e.stopPropagation();if(life?.objectsEnabled)life.showMicroHint("chair");}}
-    onPointerOut={()=>{if(size.width>=768&&!life?.chairDragging)life?.showMicroHint(null);}}
-    onClick={e=>{e.stopPropagation();if(e.delta<=8&&life?.objectsEnabled)life.showMicroHint("chair");}}>
-    {children}
-    {hint&&<Html center position={[initial,.95,CENTRAL_WORKSPACE.chair.position[2]+.55]} zIndexRange={[44,40]}><div className={styles.micro} onPointerDown={e=>e.stopPropagation()}><span>移动椅子</span>
-      <button aria-label="椅子向左移动" onClick={()=>life.moveChair(life.chairX-(ROOM_LIFE.chairRail.max-ROOM_LIFE.chairRail.min)/4)}>‹</button>
-      <button aria-label="椅子向右移动" onClick={()=>life.moveChair(life.chairX+(ROOM_LIFE.chairRail.max-ROOM_LIFE.chairRail.min)/4)}>›</button>
-    </div></Html>}
+    onPointerOver={e=>e.stopPropagation()}
+    onClick={e=>e.stopPropagation()}>
+    <RoomHover>{children}</RoomHover>
   </group>;
 }
 
@@ -55,7 +47,21 @@ export function LoungeSeat({children}:{children:ReactNode}){
   const life=useRoomLife();
   return <group name="lounge-seat-interaction" onPointerOver={e=>{e.stopPropagation();if(life?.objectsEnabled)life.showMicroHint("seat");}} onPointerOut={()=>life?.showMicroHint(null)}
     onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();if(e.delta<=8&&life?.objectsEnabled)life.sitDown();}}>
-    {children}
-    {life?.microHint==="seat"&&life.objectsEnabled&&<Html center position={[0,1.55,.2]} zIndexRange={[44,40]}><button className={styles.micro} onClick={life.sitDown} onPointerDown={e=>e.stopPropagation()}>坐下 · E / 点击</button></Html>}
+    <RoomHover>{children}</RoomHover>
+  </group>;
+}
+
+export function BookshelfInteraction({children}:{children:ReactNode}) {
+  const life=useRoomLife();
+  const start=useRef<{x:number;y:number}|null>(null);
+  return <group name="bookshelf-interaction"
+    onPointerDown={e=>{e.stopPropagation();start.current={x:e.nativeEvent.clientX,y:e.nativeEvent.clientY};}}
+    onClick={e=>{
+      e.stopPropagation();
+      if(!start.current||!life?.objectsEnabled||e.delta>8)return;
+      if(Math.hypot(e.nativeEvent.clientX-start.current.x,e.nativeEvent.clientY-start.current.y)>8)return;
+      start.current=null;life.focusHotspot("bookshelf");
+    }}>
+    <RoomHover>{children}</RoomHover>
   </group>;
 }

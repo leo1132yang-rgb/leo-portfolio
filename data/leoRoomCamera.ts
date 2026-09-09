@@ -1,7 +1,7 @@
 import { ROOM_LAYOUT } from "@/data/leoRoomDimensions";
 import { CENTRAL_WORKSPACE } from "@/data/leoRoomWorkspace";
 
-export type LeoRoomFocusId = "journey" | "gallery" | "digital" | "travel" | "desk";
+export type LeoRoomFocusId = "journey" | "gallery" | "digital" | "travel" | "desk" | "bookshelf";
 
 export type LeoRoomCameraTarget = {
   position: [number, number, number];
@@ -52,6 +52,7 @@ export const leoRoomExploreProfiles: Record<"desktop" | "mobile", LeoRoomExplore
 };
 
 export const leoRoomFocusTargets: Record<LeoRoomFocusId, LeoRoomCameraTarget> = {
+  bookshelf: { position: [4.9, 1.95, .35], target: [5.35, 1.62, -3.4] },
   desk: CENTRAL_WORKSPACE.deskCamera,
   journey: { position: [-3.1, 2.9, 3.5], target: ROOM_LAYOUT.journey.position },
   gallery: { position: [-3.1, 2.9, 2.5], target: ROOM_LAYOUT.gallery.position },

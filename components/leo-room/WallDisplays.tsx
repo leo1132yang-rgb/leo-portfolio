@@ -4,7 +4,7 @@ import { Html, useTexture } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import styles from "./StudioDisplay.module.css";
+import { TelevisionScreen } from "./TelevisionScreen";
 import type { ChildhoodStoryId } from "@/data/childhoodStories";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
 import { ROOM_LAYOUT } from "@/data/leoRoomDimensions";
@@ -205,13 +205,7 @@ function DigitalLab({ onFocus }: WallDisplaysProps) {
         <boxGeometry args={[1.35, .14, .42]} />
         <meshStandardMaterial color="#111315" metalness={.65} roughness={.32} />
       </mesh>
-      <Html transform position={[0, 0, .16]} distanceFactor={3.8} style={{ pointerEvents: "none" }}>
-        <div className={styles.display}>
-          <header><span>LEO / DIGITAL WORKSPACE</span><i>ONLINE</i></header>
-          <h2>真的做不过来了，<br />持续更新中</h2>
-          <div>{["AI", "VIDEO", "DESIGN", "SYSTEM"].map((item, index) => <b key={item}><em>0{index + 1}</em>{item}</b>)}</div>
-        </div>
-      </Html>
+      <TelevisionScreen />
     </group>
   );
 }

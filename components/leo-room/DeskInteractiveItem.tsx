@@ -1,13 +1,11 @@
 "use client";
 
-import { Html } from "@react-three/drei";
-import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { RoomHover } from "./RoomHover";
+import { useThree, type ThreeEvent } from "@react-three/fiber";
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import * as THREE from "three";
 import { useRoomLife } from "./RoomLifeContext";
-import { deskItems, type DeskItemId, type DeskSelection } from "@/data/deskItems";
-import { useLanguage } from "@/components/LanguageProvider";
-import styles from "./DeskInteraction.module.css";
+import { type DeskItemId, type DeskSelection } from "@/data/deskItems";
 
 type Gesture = { id: number; x: number; y: number; cancelled: boolean };
 const DeskContext = createContext<{ gesture: RefObject<Gesture | null>; pointers: RefObject<Set<number>>; select: (selection: DeskSelection) => void; enabled: boolean } | null>(null);
@@ -50,20 +48,10 @@ export function DeskInteractiveItem({ meta, children, position, rotation, scale 
   const context = useContext(DeskContext);
   const life = useRoomLife();
   const lamp = meta.interactiveId === "desk-lamp" && !!life;
-  const { language } = useLanguage();
   const { gl } = useThree();
   const [hovered, setHovered] = useState(false);
-  const [labelY, setLabelY] = useState(.15);
   useEffect(() => { if (!context?.enabled) setHovered(false); }, [context?.enabled]);
   const id = meta.interactiveId as DeskItemId;
-  const item = deskItems[id];
-  useFrame((_, delta) => {
-    const visual = visualRef.current;
-    if (!visual) return;
-    const target = hovered ? 1.025 : 1;
-    if (Math.abs(visual.scale.x - target) < .0001) return;
-    visual.scale.setScalar(THREE.MathUtils.damp(visual.scale.x, target, 18, delta));
-  });
   useEffect(() => {
     if (!hovered) return;
     const previous = gl.domElement.style.cursor;
@@ -73,11 +61,6 @@ export function DeskInteractiveItem({ meta, children, position, rotation, scale 
   const over = (event: ThreeEvent<PointerEvent>) => {
     if (!context?.enabled || event.pointerType === "touch" || !ref.current) return;
     event.stopPropagation();
-    const bounds = new THREE.Box3().setFromObject(ref.current);
-    const top = bounds.getCenter(new THREE.Vector3());
-    top.y = bounds.max.y;
-    ref.current.worldToLocal(top);
-    setLabelY(top.y + .08);
     setHovered(true);
     if(lamp) life?.showMicroHint("lamp");
   };
@@ -99,8 +82,7 @@ export function DeskInteractiveItem({ meta, children, position, rotation, scale 
         const box = new THREE.Box3().setFromObject(ref.current);
         context.select({ id, center: box.getCenter(new THREE.Vector3()).toArray(), size: box.getSize(new THREE.Vector3()).toArray() });
       }}>
-      <group ref={visualRef}>{children}</group>
-      {hovered && <Html center position={[0, labelY, 0]} style={{ pointerEvents: "none" }} zIndexRange={[22, 20]}><div className={styles.hover}><b>{lamp ? (life?.lightingMode === "ROOM_LIGHT_ON" ? "E / 关灯" : "E / 开灯") : language === "cn" ? item.title : item.en}</b>{!lamp && <span>{item.tag}</span>}</div></Html>}
+      <group ref={visualRef}><RoomHover>{children}</RoomHover></group>
     </group>
   );
 }

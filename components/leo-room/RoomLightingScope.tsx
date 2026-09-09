@@ -16,6 +16,7 @@ export function RoomLightingScope({ children }: { children: ReactNode }) {
     const result:typeof entries.current=[];
     const materials=new Set<THREE.Material>();
     ref.current?.traverse(o=>{
+      if(o.userData.independentPractical) return;
       if(o instanceof THREE.Light){
         const base=o.intensity, color=o.color.clone();
         const night=typeof o.userData.roomNightIntensity==="number"?o.userData.roomNightIntensity:0;

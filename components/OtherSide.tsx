@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LanguageSwitch, useLanguage } from "@/components/LanguageProvider";
 import { useGlobalAudio } from "@/hooks/useGlobalAudio";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
@@ -10,6 +10,8 @@ import { photoWallImages } from "@/data/photoWall";
 import type { DeskSelection } from "@/data/deskItems";
 import { useRoomInteractionController } from "@/components/leo-room/useRoomInteractionController";
 import { RoomModuleOverlay } from "@/components/leo-room/RoomModuleOverlay";
+import vinylStyles from "@/components/leo-room/VinylListeningCorner.module.css";
+import { VinylListeningCorner } from "@/components/leo-room/VinylListeningCorner";
 import styles from "@/components/leo-room/RoomNavigation.module.css";
 
 const DeskDetailOverlay = dynamic(() => import("@/components/leo-room/DeskDetailOverlay").then(mod => mod.DeskDetailOverlay), { ssr: false });
@@ -22,12 +24,17 @@ const MyWorldPage = dynamic(() => import("@/components/my-world/MyWorldPage").th
 
 export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
   const { language } = useLanguage();
-  const { switchTrack } = useGlobalAudio();
+  const { switchTrack, registerVinyl, toggleVinyl, vinylIsPlaying, vinylWantsPlay, vinylTrack } = useGlobalAudio();
+  const [vinylOpen, setVinylOpen] = useState(false);
+  const activateVinyl = useCallback(() => { setVinylOpen(true); toggleVinyl(); }, [toggleVinyl]);
   const cn = language === "cn";
   const interaction = useRoomInteractionController();
   const { activeHotspot, interactionState, content, contentOpen, returnToExplore, openContent } = interaction;
   const [showExploreHint, setShowExploreHint] = useState(true);
+  useEffect(registerVinyl, [registerVinyl]);
+  useEffect(() => interaction.registerVinylAction(activateVinyl), [interaction.registerVinylAction, activateVinyl]);
   const readingOpen = content?.type === "childhood";
+  const showVinyl = vinylOpen && !contentOpen && !interaction.seatActive;
 
   useEffect(() => { switchTrack(readingOpen ? "childhood" : "room"); }, [readingOpen, switchTrack]);
   useEffect(() => {
@@ -48,10 +55,10 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
     if (!contentOpen) openContent({ type: "desk", selection });
   };
   const focused = activeHotspot && !contentOpen && !interaction.seatActive;
-  const focusLabel = activeHotspot === "journey" ? "Childhood" : activeHotspot === "travel" ? "My World" : activeHotspot === "gallery" ? "Photo Wall" : activeHotspot === "desk" ? "Desk" : "Digital Lab";
+  const focusLabel = activeHotspot === "bookshelf" ? (cn ? "私人书架" : "Bookshelf") : activeHotspot === "journey" ? "Childhood" : activeHotspot === "travel" ? "My World" : activeHotspot === "gallery" ? "Photo Wall" : activeHotspot === "desk" ? "Desk" : "Digital Lab";
 
   return (
-    <main className={"leo-room" + (readingOpen ? " is-reading" : "")} data-room-state={interactionState} data-room-lighting={interaction.lightingMode} data-chair-x={interaction.chairX.toFixed(3)} data-seat-active={interaction.seatActive} data-room-hotspot={activeHotspot ?? ""} data-room-content={content?.type ?? ""} onPointerDown={() => setShowExploreHint(false)}>
+    <main className={"leo-room" + (readingOpen ? " is-reading" : "") + (showVinyl ? " " + vinylStyles.listeningRoom : "")} data-room-state={interactionState} data-room-lighting={interaction.lightingMode} data-shelf-lamp={interaction.shelfLampOn} data-vinyl-playing={vinylIsPlaying} data-vinyl-intent={vinylWantsPlay} data-vinyl-track={vinylTrack.id} data-drawer-open={interaction.drawerOpen} data-reading-book={interaction.readingBook} data-living-item={interaction.activeLivingShelfItem ?? ""} data-plant-touch={interaction.plantTouch} data-chair-x={interaction.chairX.toFixed(3)} data-seat-active={interaction.seatActive} data-room-hotspot={activeHotspot ?? ""} data-room-content={content?.type ?? ""} onPointerDown={() => setShowExploreHint(false)}>
       <div inert={contentOpen}>
         <nav hidden={interaction.seatActive} className={styles.navigation} aria-label={cn ? "房间控制" : "Room controls"}>
           <Link href="/" className={styles.button}>{cn ? "退出房间" : "Exit room"} ↗</Link>
@@ -74,6 +81,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
             photoLightboxEnabled={activeHotspot === "gallery" && interactionState === "FOCUSED"}
             onDeskItemSelect={selectDeskItem} />
         </div>
+        {showVinyl && <VinylListeningCorner onClose={() => setVinylOpen(false)} />}
         {focused && <aside className={styles.focus} aria-live="polite">
           <p>{focusLabel}<small>{activeHotspot === "desk" ? (cn ? "点击桌面物件，探索工作方式" : "Select an object to explore") : activeHotspot === "gallery" ? (cn ? "点击照片，查看故事" : "Select a photo to read its story") : (cn ? "拖动即可继续探索 · ESC 取消" : "Drag to explore · ESC to cancel")}</small></p>
           {activeHotspot === "journey" && <button type="button" className={styles.button} onClick={() => openContent({ type: "childhood" })}>{cn ? "探索童年世界" : "Explore childhood"} →</button>}

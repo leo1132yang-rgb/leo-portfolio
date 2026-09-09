@@ -27,6 +27,7 @@ export type RoomCameraDriver = {
   sit: () => Promise<void>;
   stand: () => Promise<void>;
 };
+export type LivingShelfItem = "lamp" | "vinyl" | "drawer" | "book" | "plant";
 type Model = { interactionState: RoomInteractionState; activeHotspot: LeoRoomFocusId | null; content: RoomContent | null };
 const FREE: Model = { interactionState: "FREE_EXPLORE", activeHotspot: null, content: null };
 
@@ -34,6 +35,11 @@ export function useRoomInteractionController() {
   const [model, setModel] = useState<Model>(FREE);
   const current = useRef(model);
   const [life, setLife] = useState({ lightingMode: "ROOM_LIGHT_ON" as "ROOM_LIGHT_ON" | "ROOM_LIGHT_OFF", lightingBusy: false, chairX: CENTRAL_WORKSPACE.chair.position[0] as number, chairDragging: false, microHint: null as "lamp" | "chair" | "seat" | null });
+  const [shelf, setShelf] = useState({ shelfLampOn: true, drawerOpen: false, readingBook: false, plantTouch: 0, activeLivingShelfItem: null as LivingShelfItem | null });
+  const vinylAction = useRef<(() => void) | null>(null);
+  const registerVinylAction = useCallback((action: () => void) => { vinylAction.current=action; return () => { if(vinylAction.current===action)vinylAction.current=null; }; }, []);
+  const shelfRef = useRef(shelf);
+  const updateShelf = useCallback((patch: Partial<typeof shelf>) => { shelfRef.current = {...shelfRef.current, ...patch}; setShelf(shelfRef.current); }, []);
   const lifeRef = useRef(life);
   const lightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const updateLife = useCallback((patch: Partial<typeof life>) => { lifeRef.current = { ...lifeRef.current, ...patch }; setLife(lifeRef.current); }, []);
@@ -101,7 +107,7 @@ export function useRoomInteractionController() {
   const endChairDrag = useCallback(() => { if (!lifeRef.current.chairDragging) return; updateLife({ chairDragging: false }); driver.current?.unlock(); }, [updateLife]);
   const beginChairDrag = useCallback(() => {
     if (!driver.current || current.current.content || seatActive()) return false;
-    ++generation.current; driver.current.lock(); publish(FREE); updateLife({ chairDragging: true, microHint: "chair" }); return true;
+    ++generation.current; driver.current.lock(); publish(FREE); updateLife({ chairDragging: true, microHint: null }); return true;
   }, [publish, seatActive, updateLife]);
   const moveChair = useCallback((x: number) => {
     if (current.current.content || seatActive()) return;
@@ -142,20 +148,39 @@ export function useRoomInteractionController() {
     driver.current?.unlock();
     publish(FREE);
   }, [publish]);
+  const selectLivingShelfItem = useCallback((id: LivingShelfItem | null) => {
+    if (current.current.content || seatActive() || lifeRef.current.chairDragging) id = null;
+    if (shelfRef.current.activeLivingShelfItem !== id) updateShelf({activeLivingShelfItem:id});
+    if(id && lifeRef.current.microHint) updateLife({microHint:null});
+  }, [seatActive, updateShelf, updateLife]);
+  const interactLivingShelf = useCallback((id: LivingShelfItem) => {
+    if(current.current.content || seatActive() || lifeRef.current.chairDragging) return;
+    const before=shelfRef.current;
+    if(id==='lamp') updateShelf({shelfLampOn:!before.shelfLampOn});
+    if(id==='vinyl') vinylAction.current?.();
+    if(id==='drawer') updateShelf({drawerOpen:!before.drawerOpen});
+    if(id==='book') { updateShelf({readingBook:!before.readingBook}); returnToExplore(); }
+    if(id==='plant') updateShelf({plantTouch:before.plantTouch+1});
+  }, [seatActive, updateShelf, returnToExplore]);
   const selectPhoto = useCallback((id: string) => {
     if (current.current.content?.type === "photo") publish({ ...current.current, content: { type: "photo", id } });
   }, [publish]);
   const cancelBackground = useCallback(() => {
+    if(!current.current.content && !seatActive()) updateShelf({readingBook:false});
     if (!seatActive() && !lifeRef.current.chairDragging && !current.current.content && (current.current.interactionState !== "FREE_EXPLORE" || lifeRef.current.microHint)) returnToExplore();
-  }, [returnToExplore]);
+  }, [returnToExplore, seatActive, updateShelf]);
 
   useEffect(() => {
     const escape = (event: KeyboardEvent) => {
       if (event.type === "keydown" && event.code === "KeyE" && !event.repeat && !current.current.content) {
+        if (shelfRef.current.activeLivingShelfItem) { interactLivingShelf(shelfRef.current.activeLivingShelfItem); return; }
         if (lifeRef.current.microHint === "lamp") toggleLighting();
         if (lifeRef.current.microHint === "seat") sitDown();
       }
       if (event.key !== "Escape" && event.key !== "Esc" && event.code !== "Escape") return;
+      if(event.type==='keydown' && !event.repeat && !current.current.content && !seatActive() && (shelfRef.current.readingBook || shelfRef.current.drawerOpen)) {
+        event.preventDefault(); event.stopImmediatePropagation(); updateShelf({readingBook:false,drawerOpen:false}); returnToExplore(); return;
+      }
       // One owner, registered before any module. Prevent nested game/lightbox
       // handlers and repeated keydown/keyup from dispatching a second close.
       event.preventDefault(); event.stopImmediatePropagation();
@@ -164,9 +189,9 @@ export function useRoomInteractionController() {
     window.addEventListener("keydown", escape, true);
     window.addEventListener("keyup", escape, true);
     return () => { ++generation.current; window.removeEventListener("keydown", escape, true); window.removeEventListener("keyup", escape, true); };
-  }, [returnToExplore, toggleLighting, sitDown]);
+  }, [returnToExplore, toggleLighting, sitDown, interactLivingShelf, seatActive, updateShelf]);
 
-  return { ...model, ...life, seatActive: seatActive(), contentOpen: !!model.content, controlsEnabled: !model.content && !seatActive() && !life.chairDragging, objectsEnabled: !model.content && !seatActive() && !life.chairDragging,
+  return { ...model, ...life, ...shelf, registerVinylAction, interactLivingShelf, selectLivingShelfItem, seatActive: seatActive(), contentOpen: !!model.content, controlsEnabled: !model.content && !seatActive() && !life.chairDragging, objectsEnabled: !model.content && !seatActive() && !life.chairDragging,
     toggleLighting, beginChairDrag, endChairDrag, moveChair, showMicroHint, sitDown, standUp, focusTarget: model.activeHotspot, previousCameraSnapshot,
     registerCamera, focusHotspot, openContent, returnToExplore, resetView, takeCameraControl, selectPhoto, cancelBackground };
 }

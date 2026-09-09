@@ -1,7 +1,10 @@
 "use client";
 
+import { LivingShelf } from "./LivingShelf";
+import { useFrame } from "@react-three/fiber";
+import { useRoomLife } from "./RoomLifeContext";
 import { ROOM_LIFE } from "@/data/leoRoomLife";
-import { LoungeSeat } from "./RoomLifeFurniture";
+import { BookshelfInteraction, LoungeSeat } from "./RoomLifeFurniture";
 import { PersonalBookshelf } from "./PersonalBookshelf";
 
 import { RoundedBox } from "@react-three/drei";
@@ -37,13 +40,13 @@ function useStudioSurfaces() {
   return surfaces;
 }
 
-function Block({ size, at, color = "#171919", wood, radius = .02 }: { size: Vec; at: Vec; color?: string; wood?: THREE.Texture; radius?: number }) {
+export function Block({ size, at, color = "#171919", wood, radius = .02 }: { size: Vec; at: Vec; color?: string; wood?: THREE.Texture; radius?: number }) {
   return <RoundedBox args={size} position={at} radius={Math.min(radius, Math.min(...size) * .4)} smoothness={2} bevelSegments={2} castShadow receiveShadow>
     <meshStandardMaterial color={wood ? "#eee0cd" : color} map={wood} roughness={wood ? .48 : .46} metalness={wood ? .02 : .55} />
   </RoundedBox>;
 }
 
-function Books({ at, count = 7 }: { at: Vec; count?: number }) {
+export function Books({ at, count = 7 }: { at: Vec; count?: number }) {
   const ref = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D();
@@ -63,7 +66,10 @@ function Books({ at, count = 7 }: { at: Vec; count?: number }) {
   return <instancedMesh ref={ref} position={at} args={[undefined, undefined, count]} castShadow receiveShadow><boxGeometry /><meshStandardMaterial roughness={.88} /></instancedMesh>;
 }
 
-function Plant({ at, scale = 1 }: { at: Vec; scale?: number }) {
+export function Plant({ at, scale = 1, living = false }: { at: Vec; scale?: number; living?: boolean }) {
+  const life=useRoomLife(), sway=useRef<THREE.Group>(null), time=useRef(0), pulse=useRef(10);
+  useEffect(()=>{if(living && life?.plantTouch) pulse.current=0;},[living,life?.plantTouch]);
+  useFrame((_,dt)=>{if(!living || !sway.current)return;time.current+=dt;pulse.current+=dt;const response=pulse.current<2?Math.sin(pulse.current*9)*Math.pow(1-pulse.current/2,2)*.065:0;sway.current.rotation.z=Math.sin(time.current*.65)*.006+response;});
   const leaves = useRef<THREE.InstancedMesh>(null);
   useLayoutEffect(() => {
     const dummy = new THREE.Object3D();
@@ -85,7 +91,7 @@ function Plant({ at, scale = 1 }: { at: Vec; scale?: number }) {
     <mesh position={[0, .19, 0]} castShadow receiveShadow><cylinderGeometry args={[.23, .17, .38, 20]} /><meshStandardMaterial color="#7c7764" roughness={.92} /></mesh>
     <mesh position={[0, .385, 0]}><cylinderGeometry args={[.21, .21, .012, 20]} /><meshStandardMaterial color="#252017" roughness={1} /></mesh>
     <mesh position={[0, .72, 0]}><cylinderGeometry args={[.016, .03, .72, 8]} /><meshStandardMaterial color="#57452b" roughness={.9} /></mesh>
-    <instancedMesh ref={leaves} args={[undefined, undefined, 30]} castShadow><sphereGeometry args={[1, 12, 8]} /><meshStandardMaterial roughness={.82} /></instancedMesh>
+    <group ref={sway}><instancedMesh ref={leaves} args={[undefined, undefined, 30]} castShadow><sphereGeometry args={[1, 12, 8]} /><meshStandardMaterial roughness={.82} /></instancedMesh></group>
   </group>;
 }
 
@@ -100,7 +106,7 @@ function GlobeLamp({ at, floor = false }: { at: Vec; floor?: boolean }) {
 }
 
 function Shelf({ wood }: { wood: THREE.Texture }) {
-  return <group position={[5.35, 0, -3.45]}>
+  return <group position={[5.35, 0, -3.45]}><BookshelfInteraction>
     {[-.65, .65].map(x => <Block key={x} size={[.055, 3.25, .55]} at={[x, 1.625, 0]} />)}
     {[.16, .85, 1.55, 2.25, 3.05].map((y, index) => <group key={y}>
       <Block size={[1.38, .065, .57]} at={[0, y, 0]} wood={wood} />
@@ -109,27 +115,8 @@ function Shelf({ wood }: { wood: THREE.Texture }) {
     <GlobeLamp at={[.38, 1.59, .02]} />
     <PersonalBookshelf />
     <Plant at={[.46, .883, 0]} scale={.25} />
-  </group>;
-}
-
-function Credenza({ wood }: { wood: THREE.Texture }) {
-  return <group position={[-3.05, 0, -3.43]}>
-    <Block size={[4.05, .06, .63]} at={[0, .76, 0]} wood={wood} />
-    <Block size={[4.05, .06, .6]} at={[0, .16, 0]} wood={wood} />
-    <Block size={[4, .55, .035]} at={[0, .46, -.28]} />
-    {[-1.98, -.68, .68, 1.98].map(x => <Block key={x} size={[.065, .59, .6]} at={[x, .46, 0]} wood={wood} />)}
-    {[-1.8, 1.8].map(x => <Block key={x} size={[.08, .16, .46]} at={[x, .08, 0]} />)}
-    <Books at={[-1.75, .2, .06]} count={9} /><Books at={[.85, .2, .06]} count={8} />
-    <Block size={[.83, .34, .42]} at={[0, .38, .05]} color="#44443b" />
-    <Block size={[.15, .025, .02]} at={[0, .41, .27]} color="#ba9b68" />
-    <GlobeLamp at={[-1.35, .8, 0]} /><Plant at={[-.62, .8, 0]} scale={.4} />
-    {/* Turntable, closed travel journals and a ceramic bowl. */}
-    <Block size={[.72, .075, .43]} at={[1.15, .83, 0]} wood={wood} />
-    <mesh position={[1.12, .875, 0]}><cylinderGeometry args={[.18, .18, .012, 32]} /><meshStandardMaterial color="#171918" roughness={.28} metalness={.25} /></mesh>
-    <mesh position={[1.12, .883, 0]}><cylinderGeometry args={[.05, .05, .013, 20]} /><meshStandardMaterial color="#b49a69" roughness={.7} /></mesh>
-    <Block size={[.025, .025, .28]} at={[1.42, .9, .015]} color="#b1aaa0" />
-    <Books at={[-.05, .8, 0]} count={4} />
-  </group>;
+    <mesh position={[0,1.625,.285]}><planeGeometry args={[1.38,3.25]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
+  </BookshelfInteraction></group>;
 }
 
 function Lounge({ wood, fabric }: { wood: THREE.Texture; fabric: THREE.Texture }) {
@@ -161,7 +148,7 @@ export function StudioInterior() {
   const surfaces = useStudioSurfaces();
   // Seat interaction wraps the existing chair without changing its model.
   return <group>
-    <Credenza wood={surfaces.wood} />
+    <LivingShelf wood={surfaces.wood} />
     <Shelf wood={surfaces.wood} />
     <Lounge {...surfaces} />
     <Plant at={[-5.6, 0, -3.12]} scale={1.3} />

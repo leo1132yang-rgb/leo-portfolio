@@ -4,6 +4,8 @@ import { RoundedBox as DreiRoundedBox, useGLTF, useTexture } from "@react-three/
 import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentProps, type RefObject } from "react";
 import * as THREE from "three";
 import { CENTRAL_WORKSPACE, DESK_OBJECT_DIMENSIONS, DESK_PROP_SCALE } from "@/data/leoRoomWorkspace";
+import { SculptedDeskPlant } from "./SculptedDeskPlant";
+import { LampPullChain } from "./LampPullChain";
 import { ChairMotion } from "./RoomLifeFurniture";
 import { DeskInteractiveItem } from "./DeskInteractiveItem";
 import { DetailedFujiCamera, DeskCables, DeskFoliage, Keycaps, WatchFace } from "./DeskDetails";
@@ -327,6 +329,7 @@ function DeskLamp({ surfaceY }: { surfaceY: number }) {
   const { size } = useThree();
   return (
     <DeskInteractiveItem position={[.89, surfaceY, -.25]} scale={.4} meta={meta}>
+      <LampPullChain />
       <mesh position={[0, .04, 0]} castShadow><cylinderGeometry args={[.25, .27, .08, 32]} /><meshStandardMaterial color="#101214" roughness={.26} metalness={.75} /></mesh>
       <mesh position={[0, .57, 0]} castShadow><cylinderGeometry args={[.027, .035, 1.06, 16]} /><meshStandardMaterial color="#151719" roughness={.28} metalness={.75} /></mesh>
       <mesh position={[0, 1.04, 0]} castShadow><cylinderGeometry args={[.2, .34, .25, 32, 1, true]} /><meshStandardMaterial color="#151617" roughness={.29} metalness={.7} side={THREE.DoubleSide} /></mesh>
@@ -339,9 +342,7 @@ function DeskLamp({ surfaceY }: { surfaceY: number }) {
 function DeskPlant({ position, scale = 1, meta }: { position: [number, number, number]; scale?: number; meta: InteractiveMeta }) {
   return (
     <DeskInteractiveItem position={position} scale={scale} meta={meta}>
-      <mesh castShadow><cylinderGeometry args={[.17, .14, .27, 24]} /><meshStandardMaterial color="#74604a" roughness={.9} /></mesh>
-      <mesh position={[0,.136,0]} rotation={[-Math.PI/2,0,0]}><circleGeometry args={[.155,24]} /><meshStandardMaterial color="#251e17" roughness={1} /></mesh>
-      <DeskFoliage />
+      <SculptedDeskPlant soft={meta.interactiveId === "plant-right"} />
     </DeskInteractiveItem>
   );
 }
