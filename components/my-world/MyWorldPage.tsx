@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage } from "@/components/LanguageProvider";
+import { travelGlobeName } from "@/data/worldCopy";
 import { getTravelPlacePhotos, travelWorldPlaces, type TravelWorldPlace } from "@/data/travelWorld";
 
 const OriginkitViewer = dynamic(() => import("@/components/my-world/OriginkitViewer"), {
@@ -13,7 +14,7 @@ const OriginkitViewer = dynamic(() => import("@/components/my-world/OriginkitVie
   loading: () => (
     <div className="earth-lightweight-stage">
       <div className="earth-lightweight-loading">
-        <span>MY WORLD</span>
+        <span>TRAVEL GLOBE</span>
         <b>LOADING EARTH...</b>
       </div>
     </div>
@@ -122,12 +123,12 @@ export function MyWorldPage({ embedded = false }: { embedded?: boolean } = {}) {
         transition={{ duration: .48, ease: [0.22, 1, 0.36, 1] }}
       >
         <aside className="my-world-earth-lite-copy">
-          <p className="my-world-kicker">MY WORLD</p>
-          <h1>{cn ? "我的世界" : "My World"}</h1>
+          <p className="my-world-kicker">TRAVEL GLOBE</p>
+          <h1>{travelGlobeName[language]}</h1>
           <p className="my-world-earth-lite-lead">
             {cn ? "拖动地球，探索我的足迹。" : "Drag the Earth to explore my traces."}
           </p>
-          {!embedded && <Link href="/other-side" className="my-world-back">← {cn ? "返回另一面" : "Back to The Other Side"}</Link>}
+          {!embedded && <Link href="/other-side" className="my-world-back">← {cn ? "返回我的世界" : "Back to Leo’s World"}</Link>}
         </aside>
 
         <section className="my-world-earth-lite-panel">

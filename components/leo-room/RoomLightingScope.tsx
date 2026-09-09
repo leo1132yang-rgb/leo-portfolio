@@ -6,7 +6,7 @@ import { ROOM_LIFE } from "@/data/leoRoomLife";
 import { useRoomLife } from "./RoomLifeContext";
 
 /** One registry over the existing interior. Exterior shaders are outside this
- * group, so turning off practicals never changes the universe or My World. */
+ * group, so turning off practicals never changes the universe or Travel Globe. */
 export function RoomLightingScope({ children }: { children: ReactNode }) {
   const ref=useRef<THREE.Group>(null), life=useRoomLife();
   const {size}=useThree();

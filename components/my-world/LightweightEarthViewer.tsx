@@ -281,7 +281,7 @@ export default function LightweightEarthViewer({
       <Suspense
         fallback={
           <div className="earth-lightweight-loading">
-            <span>MY WORLD</span>
+            <span>TRAVEL GLOBE</span>
             <b>LOADING EARTH...</b>
           </div>
         }

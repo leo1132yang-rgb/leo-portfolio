@@ -228,7 +228,7 @@ function TravelMap({ onFocus }: WallDisplaysProps) {
         <meshBasicMaterial map={earthTexture} toneMapped={false} color={hovered ? "#ffffff" : "#e6e1d8"} />
       </mesh>
       <Html transform position={[-1.18, 1.3, .15]} distanceFactor={.78} style={{ pointerEvents: "none" }}>
-        <div className="room-travel-label"><b>MY WORLD</b><span>我的世界</span></div>
+        <div className="room-travel-label"><b>TRAVEL GLOBE</b><span>旅行地球</span></div>
       </Html>
     </group>
   );

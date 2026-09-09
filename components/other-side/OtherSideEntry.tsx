@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Component, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage } from "@/components/LanguageProvider";
+import { worldIntroCopy, worldName } from "@/data/worldCopy";
 import RippleDistortion from "./RippleDistortion";
 import styles from "./OtherSideEntry.module.css";
 // Keep return controls styled while the room's JS is prewarmed independently.
@@ -23,6 +24,7 @@ class WarmupBoundary extends Component<{ children: ReactNode; onError: () => voi
 
 export function OtherSideEntry() {
   const { language } = useLanguage();
+  const copy = worldIntroCopy[language];
   const [showIntro, setShowIntro] = useState(true);
   const [leaving, setLeaving] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -76,10 +78,7 @@ export function OtherSideEntry() {
 
   const mountRoom = requested && chunksReady && coreReady;
   const waiting = requested && !failed;
-  const prompt = failed
-    ? (language === "cn" ? "加载未完成，点击重试" : "Loading interrupted — retry")
-    : waiting ? (language === "cn" ? "正在进入房间…" : "ENTERING ROOM…")
-    : (language === "cn" ? "点击进入我的房间" : "Enter my room");
+  const prompt = failed ? copy.retry : waiting ? copy.waiting : copy.enter;
 
   return <div className={styles.gate}>
     {showIntro && assets && <WarmupBoundary key={attempt} onError={markFailed}><Suspense fallback={null}><assets.RoomCoreAssetsReady onReady={markCoreReady} /></Suspense></WarmupBoundary>}
@@ -93,11 +92,19 @@ export function OtherSideEntry() {
         spread={5} fade={3} spacing={15} dispersion={0} glint={0}
         tintAmount={0.05} quality="low" trigger="hover"
       >
-        <button type="button" className={styles.enter} onClick={enterRoom} disabled={waiting || leaving} aria-busy={waiting} aria-label={prompt}>
-          <span className={styles.title}>OTHER SIDE</span>
-          <span className={styles.subtitle}>另一面</span>
-          <span className={styles.prompt} aria-live="polite">{prompt}{!waiting && <span aria-hidden="true"> →</span>}</span>
-        </button>
+        <div className={styles.invitation}>
+          <section className={styles.content} aria-labelledby="world-welcome-title">
+            <p className={styles.eyebrow}>{worldName.en}</p>
+            <h1 id="world-welcome-title" className={styles.title}>{copy.title}</h1>
+            <div className={styles.copy}>{copy.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+            <div className={styles.actions}>
+              <button type="button" className={styles.enter} onClick={enterRoom} disabled={waiting || leaving} aria-busy={waiting} aria-label={prompt}>
+                <span aria-live="polite">{prompt}</span>{!waiting && <span aria-hidden="true"> →</span>}
+              </button>
+              <a className={styles.feedback} href="mailto:leoyang1132@outlook.com">{copy.feedback} ↗</a>
+            </div>
+          </section>
+        </div>
       </RippleDistortion>
     </main>
     </>}

@@ -6,7 +6,7 @@ import { useGLTF, useTexture } from "@react-three/drei";
 import { TextureLoader } from "three";
 
 // Match the exact individual loader keys used by the visible Room components.
-// No photo-wall array, reading pages, lightbox images or full My World assets.
+// No photo-wall array, reading pages, lightbox images or full Travel Globe assets.
 const bottle = "/room/models/runtian-500ml-water-bottle.glb";
 const textures = [
   "/room/leo-cosmic-galaxy.png",

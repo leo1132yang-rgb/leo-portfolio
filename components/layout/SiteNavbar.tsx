@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LanguageSwitch, useLanguage } from "@/components/LanguageProvider";
+import { worldName } from "@/data/worldCopy";
 
 const links = [
   { href: "/", cn: "首页", en: "Home" },
   { href: "/projects", cn: "项目作品", en: "Projects" },
   { href: "/profile", cn: "个人履历", en: "Profile" },
-  { href: "/other-side", cn: "另一面", en: "The Other Side" },
+  { href: "/other-side", ...worldName },
 ];
 
 export function SiteNavbar({ variant = "default" }: { variant?: "default" | "hero" }) {

@@ -175,7 +175,7 @@ function createConsoleTexture() {
 
     const nodes = [
       ["PROJECTS", 330, 210], ["PROFILE", 330, 410], ["DIGITAL LAB", 950, 210],
-      ["MY WORLD", 950, 410], ["CHILDHOOD", 490, 535], ["THE OTHER SIDE", 790, 535],
+      ["TRAVEL GLOBE", 950, 410], ["CHILDHOOD", 490, 535], ["LEO’S WORLD", 790, 535],
     ] as const;
     nodes.forEach(([label, x, y], index) => {
       ctx.strokeStyle = index % 2 === 0 ? "rgba(74,218,255,.65)" : "rgba(211,167,94,.58)";

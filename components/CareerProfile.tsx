@@ -267,7 +267,7 @@ function MobileCareerTimeline({ language }: { language: Language }) {
         </div>
         <div>
           <Link href="/projects">{isCn ? "查看项目作品" : "Explore Projects"} <span>→</span></Link>
-          <Link href="/other-side">{isCn ? "进入 Leo’s Room" : "Enter Leo’s Room"} <span>→</span></Link>
+          <Link href="/other-side">{isCn ? "进入我的世界" : "Enter Leo’s World"} <span>→</span></Link>
           <a href="mailto:leoyang1132@outlook.com">{isCn ? "联系我" : "Contact Me"} <span>→</span></a>
         </div>
       </section>

@@ -9,6 +9,7 @@ import { LanguageSwitch, useLanguage } from "@/components/LanguageProvider";
 import { useGlobalAudio } from "@/hooks/useGlobalAudio";
 import type { LeoRoomFocusId } from "@/data/leoRoomCamera";
 import { photoWallImages } from "@/data/photoWall";
+import { travelGlobeName, worldName } from "@/data/worldCopy";
 import type { DeskSelection } from "@/data/deskItems";
 import { useRoomInteractionController } from "@/components/leo-room/useRoomInteractionController";
 import { RoomModuleOverlay } from "@/components/leo-room/RoomModuleOverlay";
@@ -70,7 +71,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
     if (!contentOpen) openContent({ type: "desk", selection });
   };
   const focused = activeHotspot && !contentOpen && !interaction.seatActive;
-  const focusLabel = activeHotspot === "bookshelf" ? (cn ? "私人书架" : "Bookshelf") : activeHotspot === "journey" ? "Childhood" : activeHotspot === "travel" ? "My World" : activeHotspot === "gallery" ? "Photo Wall" : activeHotspot === "desk" ? "Desk" : (cn ? "开放世界" : "Open World");
+  const focusLabel = activeHotspot === "bookshelf" ? (cn ? "私人书架" : "Bookshelf") : activeHotspot === "journey" ? "Childhood" : activeHotspot === "travel" ? travelGlobeName[language] : activeHotspot === "gallery" ? "Photo Wall" : activeHotspot === "desk" ? "Desk" : (cn ? "开放世界" : "Open World");
 
   return (
     <main className={"leo-room" + (mobile ? " " + styles.mobileRoot : "") + (readingOpen ? " is-reading" : "") + (showVinyl ? " " + vinylStyles.listeningRoom : "")} data-room-mobile={mobile} data-vinyl-open={showVinyl} data-room-state={interactionState} data-aquarium-bright={interaction.aquariumBright} data-room-lighting={interaction.lightingMode} data-shelf-lamp={interaction.shelfLampOn} data-vinyl-playing={vinylIsPlaying} data-vinyl-intent={vinylWantsPlay} data-vinyl-track={vinylTrack.id} data-drawer-open={interaction.drawerOpen} data-reading-book={interaction.readingBook} data-living-item={interaction.activeLivingShelfItem ?? ""} data-plant-touch={interaction.plantTouch} data-chair-x={interaction.chairX.toFixed(3)} data-seat-active={interaction.seatActive} data-room-hotspot={activeHotspot ?? ""} data-room-content={content?.type ?? ""} onPointerDown={() => setShowExploreHint(false)}>
@@ -82,11 +83,11 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
           {mobile && <button className={styles.button} aria-expanded={mobileActions} onClick={()=>setMobileActions(v=>!v)}>{cn?'探索':'Explore'}</button>}
         </nav>
         <header className={"leo-room__heading " + styles.heading} hidden={interaction.seatActive}>
-          <p>{cn ? "LEO 的另一面" : "THE OTHER SIDE"}</p>
-          <h1>Leo&apos;s Room <i>/ Leo&apos;s Office</i></h1>
+          <p>LEO’S ROOM / CREATIVE SPACE</p>
+          <h1>{worldName[language]}</h1>
           <span>{cn ? "拖动观察空间，点击热点靠近。随时返回探索。" : "Drag to look around. Select a hotspot. Return to exploring anytime."}</span>
           <button type="button" className="leo-room__world-entry" onClick={() => focusWall("travel")}>
-            <small>MY WORLD</small><b>{cn ? "我的地球" : "Travel memory globe"}</b><i>→</i>
+            <small>TRAVEL GLOBE</small><b>{travelGlobeName[language]}</b><i>→</i>
           </button>
         </header>
         <RoomTouchSurface mobile={mobile}>
@@ -98,7 +99,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
             onDeskItemSelect={selectDeskItem} />
         </RoomTouchSurface>
         {mobile && mobileActions && !contentOpen && !interaction.seatActive && <aside className={styles.mobileMenu} aria-label={cn?'探索房间':'Explore room'}>{[
-          ['Childhood',()=>openContent({type:'childhood'})],['My World',()=>openContent({type:'world'})],['Photo Wall',()=>focusWall('gallery')],['Desk',()=>focusWall('desk')],
+          ['Childhood',()=>openContent({type:'childhood'})],[travelGlobeName[language],()=>openContent({type:'world'})],['Photo Wall',()=>focusWall('gallery')],['Desk',()=>focusWall('desk')],
           [cn?'鱼缸灯':'Aquarium',interaction.toggleAquarium],[cn?'黑胶':'Vinyl',()=>interaction.interactLivingShelf('vinyl')],[cn?'抽屉':'Drawer',()=>interaction.interactLivingShelf('drawer')],[cn?'全屋灯':'Room light',interaction.toggleLighting],[cn?'球灯':'Shelf lamp',()=>interaction.interactLivingShelf('lamp')],[cn?'椅子':'Chair',()=>interaction.showMicroHint('chair')],[cn?'坐下':'Sit',interaction.sitDown],[cn?'书架':'Bookshelf',()=>focusWall('bookshelf')]
         ].map(([label,action])=><button key={String(label)} onClick={()=>{setMobileActions(false);(action as ()=>void)();}}>{String(label)}</button>)}</aside>}
         {mobile && !showVinyl && !focused && !contentOpen && !interaction.seatActive && !mobileActions && !interaction.microHint && interaction.activeLivingShelfItem && <aside className={styles.mobileAction}><button style={{fontSize:12,padding:'0 16px'}} onClick={()=>interaction.interactLivingShelf(interaction.activeLivingShelfItem!)}>{({lamp:cn?'切换球灯':'Lamp',vinyl:cn?'播放黑胶':'Play vinyl',drawer:interaction.drawerOpen?(cn?'关上抽屉':'Close drawer'):(cn?'打开抽屉':'Open drawer'),book:cn?'阅读':'Read',plant:cn?'轻触植物':'Touch plant'})[interaction.activeLivingShelfItem]}</button></aside>}
@@ -107,7 +108,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
         {focused && !(mobile && showVinyl) && <aside className={styles.focus} aria-live="polite">
           <p>{focusLabel}<small>{activeHotspot === "desk" ? (cn ? "点击桌面物件，探索工作方式" : "Select an object to explore") : activeHotspot === "gallery" ? (cn ? "点击照片，查看故事" : "Select a photo to read its story") : (cn ? "拖动即可继续探索 · ESC 取消" : "Drag to explore · ESC to cancel")}</small></p>
           {activeHotspot === "journey" && <button type="button" className={styles.button} onClick={() => openContent({ type: "childhood" })}>{cn ? "探索童年世界" : "Explore childhood"} →</button>}
-          {activeHotspot === "travel" && <button type="button" className={styles.button} onClick={() => openContent({ type: "world" })}>{cn ? "进入 My World" : "Enter My World"} →</button>}
+          {activeHotspot === "travel" && <button type="button" className={styles.button} onClick={() => openContent({ type: "world" })}>{cn ? "探索旅行地球" : "Explore Travel Globe"} →</button>}
           {activeHotspot === "digital" && <a className={styles.button} href="/open-world">{cn ? "进入开放世界 · 开车出发" : "Enter open world"} ↗</a>}
           <button type="button" className={styles.button} onClick={returnToExplore}>{cn ? "返回探索" : "Back to explore"} ×</button>
         </aside>}
@@ -125,7 +126,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
       }
       {content?.type === "desk" && <DeskDetailOverlay id={content.selection.id} onClose={returnToExplore} />}
       {readingOpen && <ChildhoodGame onClose={returnToExplore} />}
-      {content?.type === "world" && <RoomModuleOverlay label="My World" returnLabel={cn ? "返回房间" : "Return to room"} onClose={returnToExplore}><MyWorldPage embedded /></RoomModuleOverlay>}
+      {content?.type === "world" && <RoomModuleOverlay label={travelGlobeName[language]} returnLabel={cn ? "返回我的世界" : "Back to Leo’s World"} onClose={returnToExplore}><MyWorldPage embedded /></RoomModuleOverlay>}
       {content?.type === "photo" && <PhotoLightbox photos={photoWallImages} selectedId={content.id} onSelect={interaction.selectPhoto} onClose={returnToExplore} />}
     </main>
   );
