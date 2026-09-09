@@ -21,6 +21,7 @@ export function DeskDetailOverlay({ id, onClose }: { id: DeskItemId; onClose: ()
     <p className={styles.eyebrow}>LEO’S DESK <span>/ {item.tag}</span></p>
     <h2 id="desk-item-title">{cn ? item.title : item.en}</h2>
     <p className={styles.body}>{cn ? item.cn : item.body}</p>
+    {id === 'central-monitor' && <a className={styles.cta} href="/open-world">进入 Leo 的开放世界 · 开车出发<span>↗</span></a>}
     {item.href && <Link className={styles.cta} href={item.href}>{cn ? item.cta : item.ctaEn}<span>↗</span></Link>}
     <p className={styles.foot}>{cn ? "ESC / 关闭 · 继续自由探索" : "ESC / CLOSE · EXPLORE FREELY"}</p>
   </aside>;

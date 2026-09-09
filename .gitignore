@@ -16,3 +16,7 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Generated standalone open world
+public/world/
+games/leo-world/dist/

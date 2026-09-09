@@ -280,6 +280,17 @@ function CentralMonitor() {
   const texture = useTexture("/room/leo-central-console-desk.webp");
   const { monitor, desk } = CENTRAL_WORKSPACE;
   const meta = META.monitor;
+  const worldBadge = useMemo(() => {
+    const canvas = document.createElement('canvas'); canvas.width = 768; canvas.height = 160;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#e9eddc'; ctx.fillRect(0, 0, 768, 160);
+    ctx.fillStyle = '#294137'; ctx.font = 'bold 46px "Microsoft YaHei", sans-serif';
+    ctx.fillText('开放世界  ↗', 34, 66);
+    ctx.font = '25px "Microsoft YaHei", sans-serif'; ctx.fillText('开一辆车，探索 Leo 的人生', 34, 116);
+    const badge = new THREE.CanvasTexture(canvas); badge.colorSpace = THREE.SRGBColorSpace;
+    return badge;
+  }, []);
+  useEffect(() => () => worldBadge.dispose(), [worldBadge]);
   const surfaceY = .14 + desk.height + desk.topThickness / 2;
 
   useEffect(() => {
@@ -312,6 +323,10 @@ function CentralMonitor() {
       <mesh userData={{roomNightFactor:.7}} position={[0, monitor.centerY, monitor.depth / 2 + .004]}>
         <planeGeometry args={[monitor.width, monitor.height]} />
         <meshStandardMaterial map={texture} emissiveMap={texture} emissive="#ffffff" emissiveIntensity={.28} roughness={.13} metalness={.08} toneMapped={false} />
+      </mesh>
+      <mesh position={[0, monitor.centerY - monitor.height * .29, monitor.depth / 2 + .006]}>
+        <planeGeometry args={[monitor.width * .78, monitor.width * .78 * 160 / 768]} />
+        <meshBasicMaterial map={worldBadge} toneMapped={false} />
       </mesh>
       <RoundedBox args={[monitor.width * .58, monitor.height * .55, .045]} radius={.025} smoothness={3} position={[0, monitor.centerY - .05, -.044]} castShadow><meshStandardMaterial color="#191e22" roughness={.61} metalness={.25} /></RoundedBox>
       <RoundedBox args={[.035, .23, .035]} radius={.018} smoothness={3} position={[0, surfaceY + .135, -.015]} castShadow>
