@@ -11,6 +11,7 @@ const bottle = "/room/models/runtian-500ml-water-bottle.glb";
 const textures = [
   "/room/leo-cosmic-galaxy.png",
   "/room/leo-central-console-desk.webp",
+  "/room/leo-open-world-cover.webp",
   "/room/childhood-wall/childhood-game-home.webp",
   "/room/world/originkit-preview.webp", // Static wall preview; no Globe/data initialization.
 ] as const;
@@ -31,6 +32,7 @@ export function RoomCoreAssetsReady({ onReady }: { onReady: () => void }) {
   useLoader(TextureLoader, textures[1]);
   useLoader(TextureLoader, textures[2]);
   useLoader(TextureLoader, textures[3]);
+  useLoader(TextureLoader, textures[4]);
   useEffect(onReady, [onReady]);
   return null;
 }

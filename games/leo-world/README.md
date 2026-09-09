@@ -1,6 +1,6 @@
 # Leo 的开放世界
 
-在 `codex/leo-open-world` 分支中新增的独立驾驶版个人网站。访问 `/open-world`，或在 Leo’s Room 点击中间电脑，再选择“进入 Leo 的开放世界”。返回房间保留原网站的入口和内容。
+在 `codex/leo-open-world` 分支中新增的独立驾驶版个人网站。访问 `/open-world`，或在 Leo’s Room 点击后墙电视，再点击电视或选择“进入开放世界 · 开车出发”。中间电脑保持原来的控制台内容和数字工作室入口。
 
 这是对 Bruno Simon [Folio 2025](https://github.com/brunosimon/folio-2025) 的 MIT 许可改编，使用其完整世界、渲染、车辆物理和小游戏架构。它不是从零重做的同款场景。导入版本：`41046b57eeed8d156d9c3fd7fa259900baef7816`。版权和许可见 [LICENSE](LICENSE)。
 

@@ -62,6 +62,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
     if (activeHotspot === id && interactionState === "FOCUSED") {
       if (id === "journey") { openContent({ type: "childhood" }); return; }
       if (id === "travel") { openContent({ type: "world" }); return; }
+      if (id === "digital") { window.location.assign("/open-world"); return; }
     }
     interaction.focusHotspot(id);
   };
@@ -69,7 +70,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
     if (!contentOpen) openContent({ type: "desk", selection });
   };
   const focused = activeHotspot && !contentOpen && !interaction.seatActive;
-  const focusLabel = activeHotspot === "bookshelf" ? (cn ? "私人书架" : "Bookshelf") : activeHotspot === "journey" ? "Childhood" : activeHotspot === "travel" ? "My World" : activeHotspot === "gallery" ? "Photo Wall" : activeHotspot === "desk" ? "Desk" : "Digital Lab";
+  const focusLabel = activeHotspot === "bookshelf" ? (cn ? "私人书架" : "Bookshelf") : activeHotspot === "journey" ? "Childhood" : activeHotspot === "travel" ? "My World" : activeHotspot === "gallery" ? "Photo Wall" : activeHotspot === "desk" ? "Desk" : (cn ? "开放世界" : "Open World");
 
   return (
     <main className={"leo-room" + (mobile ? " " + styles.mobileRoot : "") + (readingOpen ? " is-reading" : "") + (showVinyl ? " " + vinylStyles.listeningRoom : "")} data-room-mobile={mobile} data-vinyl-open={showVinyl} data-room-state={interactionState} data-aquarium-bright={interaction.aquariumBright} data-room-lighting={interaction.lightingMode} data-shelf-lamp={interaction.shelfLampOn} data-vinyl-playing={vinylIsPlaying} data-vinyl-intent={vinylWantsPlay} data-vinyl-track={vinylTrack.id} data-drawer-open={interaction.drawerOpen} data-reading-book={interaction.readingBook} data-living-item={interaction.activeLivingShelfItem ?? ""} data-plant-touch={interaction.plantTouch} data-chair-x={interaction.chairX.toFixed(3)} data-seat-active={interaction.seatActive} data-room-hotspot={activeHotspot ?? ""} data-room-content={content?.type ?? ""} onPointerDown={() => setShowExploreHint(false)}>
@@ -107,7 +108,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
           <p>{focusLabel}<small>{activeHotspot === "desk" ? (cn ? "点击桌面物件，探索工作方式" : "Select an object to explore") : activeHotspot === "gallery" ? (cn ? "点击照片，查看故事" : "Select a photo to read its story") : (cn ? "拖动即可继续探索 · ESC 取消" : "Drag to explore · ESC to cancel")}</small></p>
           {activeHotspot === "journey" && <button type="button" className={styles.button} onClick={() => openContent({ type: "childhood" })}>{cn ? "探索童年世界" : "Explore childhood"} →</button>}
           {activeHotspot === "travel" && <button type="button" className={styles.button} onClick={() => openContent({ type: "world" })}>{cn ? "进入 My World" : "Enter My World"} →</button>}
-          {activeHotspot === "digital" && <Link className={styles.button} href="/leo-os">{cn ? "查看内容" : "View content"} ↗</Link>}
+          {activeHotspot === "digital" && <a className={styles.button} href="/open-world">{cn ? "进入开放世界 · 开车出发" : "Enter open world"} ↗</a>}
           <button type="button" className={styles.button} onClick={returnToExplore}>{cn ? "返回探索" : "Back to explore"} ×</button>
         </aside>}
         <div className={styles.status} hidden={interaction.seatActive}>
