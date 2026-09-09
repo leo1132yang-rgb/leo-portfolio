@@ -36,6 +36,15 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
   const interaction = useRoomInteractionController();
   const { activeHotspot, interactionState, content, contentOpen, returnToExplore, openContent } = interaction;
   const [showExploreHint, setShowExploreHint] = useState(true);
+  const closeVinyl = useCallback(() => {
+    setVinylOpen(false);
+    setMobileSheetOpen(false);
+    returnToExplore();
+  }, [returnToExplore]);
+  const changeVinylSheet = useCallback((open: boolean) => {
+    setMobileSheetOpen(open);
+    if (!open) interaction.takeCameraControl();
+  }, [interaction.takeCameraControl]);
   useEffect(registerVinyl, [registerVinyl]);
   useEffect(() => interaction.registerVinylAction(activateVinyl), [interaction.registerVinylAction, activateVinyl]);
   const readingOpen = content?.type === "childhood";
@@ -93,7 +102,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
         ].map(([label,action])=><button key={String(label)} onClick={()=>{setMobileActions(false);(action as ()=>void)();}}>{String(label)}</button>)}</aside>}
         {mobile && !showVinyl && !focused && !contentOpen && !interaction.seatActive && !mobileActions && !interaction.microHint && interaction.activeLivingShelfItem && <aside className={styles.mobileAction}><button style={{fontSize:12,padding:'0 16px'}} onClick={()=>interaction.interactLivingShelf(interaction.activeLivingShelfItem!)}>{({lamp:cn?'切换球灯':'Lamp',vinyl:cn?'播放黑胶':'Play vinyl',drawer:interaction.drawerOpen?(cn?'关上抽屉':'Close drawer'):(cn?'打开抽屉':'Open drawer'),book:cn?'阅读':'Read',plant:cn?'轻触植物':'Touch plant'})[interaction.activeLivingShelfItem]}</button></aside>}
         {mobile && interaction.microHint === 'chair' && !contentOpen && !interaction.seatActive && <aside style={showVinyl?{bottom:'calc(142px + env(safe-area-inset-bottom))'}:undefined} className={styles.mobileAction} aria-label={cn?'移动椅子':'Move chair'}><button onClick={()=>interaction.moveChair(interaction.chairX-.55)} aria-label={cn?'椅子向左':'Move chair left'}>‹</button><span>{cn?'移动椅子':'Move chair'}</span><button onClick={()=>interaction.moveChair(interaction.chairX+.55)} aria-label={cn?'椅子向右':'Move chair right'}>›</button><button onClick={()=>interaction.showMicroHint(null)} aria-label={cn?'完成':'Done'}>×</button></aside>}
-        {showVinyl && <VinylListeningCorner registerDismiss={interaction.registerTransientDismiss} onSheetChange={setMobileSheetOpen} onClose={() => setVinylOpen(false)} />}
+        {showVinyl && <VinylListeningCorner registerDismiss={interaction.registerTransientDismiss} onSheetChange={changeVinylSheet} onClose={closeVinyl} />}
         {focused && !(mobile && showVinyl) && <aside className={styles.focus} aria-live="polite">
           <p>{focusLabel}<small>{activeHotspot === "desk" ? (cn ? "点击桌面物件，探索工作方式" : "Select an object to explore") : activeHotspot === "gallery" ? (cn ? "点击照片，查看故事" : "Select a photo to read its story") : (cn ? "拖动即可继续探索 · ESC 取消" : "Drag to explore · ESC to cancel")}</small></p>
           {activeHotspot === "journey" && <button type="button" className={styles.button} onClick={() => openContent({ type: "childhood" })}>{cn ? "探索童年世界" : "Explore childhood"} →</button>}

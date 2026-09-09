@@ -53,7 +53,7 @@ async function run(width){
  console.log('PASS Living Shelf: independent state, single selection, drawer ESC, book background close, free camera, vinyl persistence');
  const initial=pose();
  await invoke(()=>interaction.focusHotspot('journey'));assert.equal(interaction.interactionState,'FOCUSING');assert.equal(interaction.previousCameraSnapshot.current.rotation.length,4);await frame(12);
- await invoke(esc);assert.equal(interaction.interactionState,'RESTORING');await frame();free();assert(initial.pos.distanceTo(pose().pos)<.05&&initial.target.distanceTo(pose().target)<.05,'interrupted focus did not restore snapshot');
+ const interrupted=pose();await invoke(esc);free();await frame();free();assert(equalPose(interrupted,pose()),'dismissed focus retained camera animation');
  await invoke(()=>interaction.focusHotspot('journey'));await frame();assert.equal(interaction.interactionState,'FOCUSED');await invoke(esc);free();
  const modules=[{type:'childhood'},{type:'world'},{type:'desk',selection:{id:'camera',center:[0,1.7,0],size:[.3,.2,.2]}},{type:'photo',id:'existing-photo'}];
  for(let round=0;round<3;round++)for(const content of modules){
@@ -85,6 +85,6 @@ async function run(width){
  await act(async()=>new Promise(resolve=>setTimeout(resolve,850)));await invoke(()=>interaction.toggleLighting());assert.equal(interaction.lightingMode,'ROOM_LIGHT_ON');
  console.log('PASS life: light debounce, chair clamp/lock/persistence, seated eye, fixed-eye look, hotspot priority, stand/unlock, interrupted sit');
  await act(async()=>root.unmount());assert.equal(listeners.get('keydown').size,0,'keyboard listener leaked');assert.equal(listeners.get('keyup').size,0,'keyup listener leaked');
- console.log('PASS '+width+'px: snapshot restore, focused ESC, all four modules x3, nearby unlock, interrupted desk, stale completion, background cancel, gesture takeover, RESET, ESC free, listener cleanup');
+ console.log('PASS '+width+'px: immediate focus release, focused ESC, all four modules x3, nearby unlock, interrupted desk, stale completion, background cancel, gesture takeover, RESET, ESC free, listener cleanup');
 }
 (async()=>{await run(1280);await run(320);await run(360);await run(390);await run(430)})().catch(e=>{console.error(e);process.exitCode=1});

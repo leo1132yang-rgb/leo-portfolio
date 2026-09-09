@@ -121,18 +121,11 @@ export function useRoomInteractionController() {
   const returnToExplore = useCallback(() => {
     if (seatActive()) { standUp(); return; }
     endChairDrag(); updateLife({ microHint: null });
-    const before = current.current;
-    const token = ++generation.current;
-    const snapshot = previousCameraSnapshot.current;
-    // Closing content keeps the actual current view. Only an interrupted focus
-    // restores the pre-click snapshot; stale transition completions are ignored.
+    // Dismissal immediately cancels focus transitions and releases the camera.
+    ++generation.current;
+    previousCameraSnapshot.current = null;
     driver.current?.unlock();
-    if (before.interactionState === "FOCUSING" && snapshot && driver.current) {
-      publish({ interactionState: "RESTORING", activeHotspot: null, content: null });
-      void driver.current.restore(snapshot).then(() => {
-        if (generation.current === token) { driver.current?.unlock(); publish(FREE); }
-      }).catch(() => { if (generation.current === token) { driver.current?.unlock(); publish(FREE); } });
-    } else publish(FREE);
+    publish(FREE);
   }, [publish, seatActive, standUp, endChairDrag, updateLife]);
 
   const resetView = useCallback(() => {

@@ -102,7 +102,7 @@ function JourneyBoard({ onFocus, onChildhoodActivate }: WallDisplaysProps) {
   );
 }
 
-function PhotoWall({ onPhotoSelect }: WallDisplaysProps) {
+function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplaysProps) {
   const textures = useTexture(photoPaths) as THREE.Texture[];
   const { gl } = useThree();
   const [hoveredPhotoId, setHoveredPhotoId] = useState<string | null>(null);
@@ -148,7 +148,8 @@ function PhotoWall({ onPhotoSelect }: WallDisplaysProps) {
             const start=photoPointerRef.current;photoPointerRef.current=null;
             if(!start||start.id!==photo.id||start.dragged||event.delta>8||Math.hypot(event.nativeEvent.clientX-start.x,event.nativeEvent.clientY-start.y)>8)return;
             setHoveredPhotoId(null);
-            onPhotoSelect?.(photo);
+            if (photoLightboxEnabled) onPhotoSelect?.(photo);
+            else onFocus("gallery");
           },
           onPointerOver: (event: ThreeEvent<PointerEvent>) => {
             event.stopPropagation();
