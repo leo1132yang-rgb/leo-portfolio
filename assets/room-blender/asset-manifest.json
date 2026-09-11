@@ -1,0 +1,32 @@
+{
+  "leo-desk": {
+    "triangles": 7352,
+    "draws": 4,
+    "sizeXYZ": [
+      4.81,
+      0.84623,
+      2.2648
+    ],
+    "minXYZ": [
+      -2.405,
+      0.14,
+      -1.5048
+    ],
+    "bytes": 946372
+  },
+  "stitch-display-cabinet": {
+    "triangles": 9776,
+    "draws": 5,
+    "sizeXYZ": [
+      1.06,
+      1.66,
+      0.48
+    ],
+    "minXYZ": [
+      -0.53,
+      0,
+      -0.24
+    ],
+    "bytes": 1007976
+  }
+}

@@ -20,19 +20,24 @@ const {createRoot, extend} = require('@react-three/fiber');
 extend(THREE);
 const RealRoundedBox = require('@react-three/drei/core/RoundedBox.cjs.js').RoundedBox;
 const textures = new Map();
-const bottleScene = new THREE.Group();
-const bytes=fs.readFileSync('public/room/models/runtian-500ml-water-bottle.glb');
-const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)));
-const bin=bytes.subarray(28+bytes.readUInt32LE(12));
-const read=a=>{const v=json.bufferViews[a.bufferView];const start=(v.byteOffset||0)+(a.byteOffset||0);const len=a.count*({VEC3:3,VEC2:2,SCALAR:1}[a.type]);const copy=bin.subarray(start,start+len*({5126:4,5123:2,5125:4}[a.componentType]));return new ({5126:Float32Array,5123:Uint16Array,5125:Uint32Array}[a.componentType])(copy.buffer.slice(copy.byteOffset,copy.byteOffset+copy.length))};
-for(const node of json.nodes){if(node.mesh===undefined)continue; const p=json.meshes[node.mesh].primitives[0];const g=new THREE.BufferGeometry(); for(const [a,key,n] of [['POSITION','position',3],['NORMAL','normal',3],['TEXCOORD_0','uv',2]])if(p.attributes[a]!==undefined)g.setAttribute(key,new THREE.BufferAttribute(read(json.accessors[p.attributes[a]]),n));if(p.indices!==undefined)g.setIndex(new THREE.BufferAttribute(read(json.accessors[p.indices]),1)); const mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial());mesh.name=node.name;if(node.translation)mesh.position.fromArray(node.translation);if(node.rotation)mesh.quaternion.fromArray(node.rotation);if(node.scale)mesh.scale.fromArray(node.scale);bottleScene.add(mesh);}
+const assets=new Map();
+function readAsset(url){
+ if(assets.has(url))return assets.get(url);
+ const bytes=fs.readFileSync(path.join('public',url));
+ const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12))),bin=bytes.subarray(28+bytes.readUInt32LE(12));
+ const read=a=>{const v=json.bufferViews[a.bufferView];const start=(v.byteOffset||0)+(a.byteOffset||0);const n={VEC3:3,VEC2:2,VEC4:4,SCALAR:1}[a.type],Type={5126:Float32Array,5123:Uint16Array,5125:Uint32Array,5121:Uint8Array}[a.componentType];const copy=bin.subarray(start,start+a.count*n*Type.BYTES_PER_ELEMENT);return new Type(copy.buffer.slice(copy.byteOffset,copy.byteOffset+copy.length));};
+ const nodes=json.nodes.map(node=>{const group=new THREE.Group();group.name=node.name||'';if(node.translation)group.position.fromArray(node.translation);if(node.rotation)group.quaternion.fromArray(node.rotation);if(node.scale)group.scale.fromArray(node.scale);
+ if(node.mesh!==undefined)for(const p of json.meshes[node.mesh].primitives){const g=new THREE.BufferGeometry();for(const [a,key,n] of [['POSITION','position',3],['NORMAL','normal',3],['TEXCOORD_0','uv',2]])if(p.attributes[a]!==undefined)g.setAttribute(key,new THREE.BufferAttribute(read(json.accessors[p.attributes[a]]),n));if(p.indices!==undefined)g.setIndex(new THREE.BufferAttribute(read(json.accessors[p.indices]),1));const mesh=new THREE.Mesh(g,new THREE.MeshStandardMaterial());mesh.name=node.name||"";group.add(mesh);}return group;});
+ json.nodes.forEach((n,i)=>(n.children||[]).forEach(child=>nodes[i].add(nodes[child])));
+ const scene=new THREE.Group();json.scenes[json.scene||0].nodes.forEach(i=>scene.add(nodes[i]));assets.set(url,scene);return scene;
+}
 const originalLoad = Module._load;
 const jsx = React.createElement;
 Module._load = function(name,parent,isMain){
   if(name==='@react-three/drei')return {
     RoundedBox:RealRoundedBox,
     useTexture:(url)=>{if(!textures.has(url)){const t=new THREE.Texture();t.image={width:1672,height:941};textures.set(url,t)}return textures.get(url)},
-    useGLTF:Object.assign(()=>({scene:bottleScene}),{preload(){}}), Html:()=>null,
+    useGLTF:Object.assign((url)=>({scene:readAsset(url)}),{preload(){}}), Html:()=>null,
   };
   if(name==='@/components/LanguageProvider')return {useLanguage:()=>({language:'cn'})};
   if(name.endsWith('.module.css'))return new Proxy({},{get:(_,k)=>k});
@@ -59,7 +64,9 @@ const fire=(event,payload)=>{for(const fn of listeners.get(event)||[])fn(payload
   await React.act(async()=>root.render(renderTree()));
   state.scene.updateMatrixWorld(true);
   const items=[];state.scene.traverse(o=>{if(o.userData.deskItem)items.push(o)});
-  assert(items.length===Object.keys(deskItems).length,'Missing/duplicate clickable item');
+  assert(items.length===Object.keys(deskItems).length-1,'Missing/duplicate clickable item');
+  assert(!items.some(o=>o.userData.interactiveId==='coffee'),'Ordinary cup must be replaced by Runtian');
+  assert(items.filter(o=>o.userData.interactiveId==='runtian-water').length===1,'Exactly one original Runtian bottle');
   const boxes=new Map(items.map(o=>[o.userData.interactiveId,new THREE.Box3().setFromObject(o)]));
   console.log('Independent clickable items:',items.length);
   const surface=.14+CENTRAL_WORKSPACE.desk.height+CENTRAL_WORKSPACE.desk.topThickness/2;
@@ -123,7 +130,14 @@ const fire=(event,payload)=>{for(const fn of listeners.get(event)||[])fn(payload
   // The tank body must be supported by the tabletop, with no phone/prop overlap.
   assert(tankBox.min.z>=CENTRAL_WORKSPACE.position[2]-CENTRAL_WORKSPACE.desk.depth/2,'Aquarium overhangs the back edge');
   for(const item of topItems)assert(!tankBox.intersectsBox(boxes.get(item.userData.interactiveId)),'Aquarium intersects '+item.userData.interactiveId);
-  desk.traverse(o=>{if(o.isMesh)assert(!pc.intersectsBox(new THREE.Box3().setFromObject(o)),'PC intersects desk')});
+  desk.traverse(o=>{if(!o.isMesh)return;const g=o.geometry,pos=g.attributes.position,index=g.index;for(let i=0;i<(index?.count||pos.count);i+=3){const points=[0,1,2].map(j=>new THREE.Vector3().fromBufferAttribute(pos,index?index.getX(i+j):i+j).applyMatrix4(o.matrixWorld));assert(!pc.intersectsTriangle(new THREE.Triangle(...points)),'PC intersects Blender desk');}});
+  const deskBox=new THREE.Box3().setFromObject(desk),cabinetBox=new THREE.Box3().setFromObject(cabinet);
+  assert(Math.abs(deskBox.getSize(new THREE.Vector3()).x-4.81)<.001,'Desk width changed');
+  assert(Math.abs(deskBox.getSize(new THREE.Vector3()).z-2.2648)<.001,'Main slab and wing footprint changed');
+  assert(Math.abs(deskBox.max.y-(surface+.001))<.001,'Desktop support plane changed');
+  const cb=cabinetBox.getSize(new THREE.Vector3());
+  assert(Math.abs(cb.x-1.06)<.001&&Math.abs(cb.y-1.66)<.001&&Math.abs(cb.z-.48)<.001,'Cabinet dimensions changed');
+  assert(DESK_PROP_SCALE===2,'Desk props scale changed');
   const minClearance=(.14+CENTRAL_WORKSPACE.desk.height-CENTRAL_WORKSPACE.desk.topThickness/2)-pc.max.y;
   console.log('PC top clearance:',minClearance.toFixed(3),'m');
   let triangles=0,meshes=0;state.scene.getObjectByName('desk-test').traverse(o=>{if(o.isMesh){meshes++;triangles+=(o.geometry.index?.count||o.geometry.attributes.position?.count||0)/3*(o.isInstancedMesh?o.count:1)}});

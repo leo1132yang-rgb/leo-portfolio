@@ -152,7 +152,7 @@ export function StudioInterior() {
   return <group>
     <LivingShelf wood={surfaces.wood} />
     <Shelf wood={surfaces.wood} />
-    <StitchCollectionCabinet wood={surfaces.wood}/>
+    <StitchCollectionCabinet/>
     <Lounge {...surfaces} />
     <Plant at={[-6.55, 0, -4.3]} scale={1.3} />
     <Plant at={[7.05, 0, 3.9]} scale={1.05} />

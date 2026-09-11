@@ -1,16 +1,17 @@
 "use client";
 
 import { RoundedBox as DreiRoundedBox, useGLTF, useTexture } from "@react-three/drei";
-import { useEffect, useLayoutEffect, useMemo, useRef, type ComponentProps, type RefObject } from "react";
+import { useEffect, useMemo, useRef, type ComponentProps, type RefObject } from "react";
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { CENTRAL_WORKSPACE, DESK_OBJECT_DIMENSIONS, DESK_PROP_SCALE } from "@/data/leoRoomWorkspace";
+import { RoomFurnitureAsset } from './RoomFurnitureAsset';
 import { DeskAquascape } from "./DeskAquascape";
 import { SculptedDeskPlant } from "./SculptedDeskPlant";
 import { LampPullChain } from "./LampPullChain";
 import { ChairMotion } from "./RoomLifeFurniture";
 import { DeskInteractiveItem } from "./DeskInteractiveItem";
-import { DetailedFujiCamera, DeskCables, DeskFoliage, Keycaps, WatchFace } from "./DeskDetails";
+import { DetailedFujiCamera, DeskCables, Keycaps, WatchFace } from "./DeskDetails";
 import { RuntianReferenceModel, PropContact } from "./DeskPersonalProps";
 import { useThree } from "@react-three/fiber";
 
@@ -85,164 +86,9 @@ const DESKTOP_PC_TRANSFORM = (() => {
   };
 })();
 
-function useGeneratedTexture(factory: () => THREE.Texture) {
-  const texture = useMemo(factory, [factory]);
-  useEffect(() => () => texture.dispose(), [texture]);
-  return texture;
-}
-
-function createWoodTexture() {
-  const width = 512;
-  const height = 256;
-  const data = new Uint8Array(width * height * 4);
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const i = (y * width + x) * 4;
-      const flow=y+Math.sin(x*.008+y*.014)*4;
-      const broad=Math.sin(flow*.11)*8+Math.sin(flow*.041)*4;
-      const fine=Math.sin(flow*1.7+Math.sin(x*.03)) * 3;
-      const pore=Math.sin(x*12.9898+y*78.233)*1.1;
-      data[i] = 94 + broad + fine + pore;
-      data[i + 1] = 60 + broad * .63 + fine * .5 + pore;
-      data[i + 2] = 39 + broad * .36 + fine * .25;
-      data[i + 3] = 255;
-    }
-  }
-  const texture = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 1);
-  texture.anisotropy = 8;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function canvasTexture(width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void) {
-  if (typeof document === "undefined") return new THREE.Texture();
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d");
-  if (!context) return new THREE.Texture();
-  draw(context);
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = 8;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function createConsoleTexture() {
-  return canvasTexture(1280, 640, (ctx) => {
-    const gradient = ctx.createLinearGradient(0, 0, 1280, 640);
-    gradient.addColorStop(0, "#061126");
-    gradient.addColorStop(.55, "#08234c");
-    gradient.addColorStop(1, "#040b19");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, 1280, 640);
-
-    ctx.strokeStyle = "rgba(75, 220, 255, .12)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x < 1280; x += 96) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 640); ctx.stroke();
-    }
-    for (let y = 0; y < 640; y += 80) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1280, y); ctx.stroke();
-    }
-
-    ctx.fillStyle = "rgba(241,247,255,.95)";
-    ctx.font = "600 34px Arial";
-    ctx.fillText("LEO’S ROOM", 62, 66);
-    ctx.fillStyle = "rgba(104,224,255,.72)";
-    ctx.font = "500 17px Arial";
-    ctx.fillText("CENTRAL CONSOLE / 中央控制台", 62, 96);
-
-    const cx = 640;
-    const cy = 330;
-    ctx.strokeStyle = "rgba(211,167,94,.78)";
-    ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(cx, cy, 102, 0, Math.PI * 2); ctx.stroke();
-    ctx.strokeStyle = "rgba(74,218,255,.33)";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(cx, cy, 126, 0, Math.PI * 2); ctx.stroke();
-    const glow = ctx.createRadialGradient(cx, cy, 10, cx, cy, 92);
-    glow.addColorStop(0, "rgba(76,218,255,.5)");
-    glow.addColorStop(1, "rgba(27,70,151,.5)");
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(cx, cy, 88, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#f6f3e9";
-    ctx.font = "600 28px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("LEO", cx, cy - 2);
-    ctx.fillStyle = "rgba(133,228,255,.8)";
-    ctx.font = "500 15px Arial";
-    ctx.fillText("CENTRAL NODE", cx, cy + 28);
-
-    const nodes = [
-      ["PROJECTS", 330, 210], ["PROFILE", 330, 410], ["DIGITAL LAB", 950, 210],
-      ["TRAVEL GLOBE", 950, 410], ["CHILDHOOD", 490, 535], ["LEO’S WORLD", 790, 535],
-    ] as const;
-    nodes.forEach(([label, x, y], index) => {
-      ctx.strokeStyle = index % 2 === 0 ? "rgba(74,218,255,.65)" : "rgba(211,167,94,.58)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.roundRect(x - 104, y - 34, 208, 68, 12); ctx.stroke();
-      ctx.fillStyle = "rgba(8,20,45,.78)";
-      ctx.beginPath(); ctx.roundRect(x - 102, y - 32, 204, 64, 11); ctx.fill();
-      ctx.fillStyle = "rgba(241,247,255,.88)";
-      ctx.font = "500 17px Arial";
-      ctx.textAlign = "center";
-      ctx.fillText(label, x, y + 6);
-      ctx.strokeStyle = "rgba(93,193,226,.22)";
-      ctx.beginPath(); ctx.moveTo(cx + (x < cx ? -104 : 104), cy); ctx.lineTo(x + (x < cx ? 105 : -105), y); ctx.stroke();
-    });
-  });
-}
-
-function WoodMaterial({ texture }: { texture: THREE.Texture }) {
-  return <meshPhysicalMaterial map={texture} bumpMap={texture} bumpScale={.002} color="#ddd0be" roughness={.52} metalness={0} clearcoat={.12} clearcoatRoughness={.48} />;
-}
-
-function OfficeDesk({ wood }: { wood: THREE.Texture }) {
-  const { desk } = CENTRAL_WORKSPACE;
-  const floor = .14;
-  const topY = floor + desk.height;
-  const legHeight = desk.height - desk.topThickness;
-  const leftDrawerX = -desk.width / 2 + .53;
-  const meta = META.desk;
-
-  return (
-    <group userData={meta}>
-      <RoundedBox args={[desk.width, desk.topThickness, desk.depth]} radius={.018} smoothness={5} position={[0, topY, 0]} castShadow receiveShadow>
-        <WoodMaterial texture={wood} />
-      </RoundedBox>
-      <RoundedBox args={[desk.wingWidth, desk.topThickness, desk.wingDepth]} radius={.018} smoothness={5} position={[desk.width / 2 - desk.wingWidth / 2, topY, -desk.depth * .63]} castShadow receiveShadow>
-        <WoodMaterial texture={wood} />
-      </RoundedBox>
-      {[[-desk.width / 2 + .18, 0], [desk.width / 2 - .18, 0], [desk.width / 2 - .18, -desk.depth * .71]].map(([x, z], index) => (
-        <RoundedBox key={index} args={[.14, legHeight, .14]} radius={.009} smoothness={3} position={[x, floor + legHeight / 2, z]} castShadow receiveShadow>
-          <meshStandardMaterial color="#242827" roughness={.57} metalness={.48} />
-        </RoundedBox>
-      ))}
-      <RoundedBox args={[.92, legHeight * .91, desk.depth * .72]} radius={.045} smoothness={4} position={[leftDrawerX, floor + legHeight * .455, .05]} castShadow receiveShadow>
-        <WoodMaterial texture={wood} />
-      </RoundedBox>
-      {[.145, .375, .565].map((y, index) => (
-        <group key={y} position={[leftDrawerX, floor + y, desk.depth * .415-.07]}>
-          <RoundedBox args={[.86,index===0?.26:.175,.036]} radius={.006} castShadow><WoodMaterial texture={wood}/></RoundedBox>
-          <RoundedBox position={[0, index===0?.073:.04, .027]} args={[.3,.022,.024]} radius={.005} castShadow><meshStandardMaterial color="#282a27" roughness={.48} metalness={.65}/></RoundedBox>
-        </group>
-      ))}
-      {[-1,1].map(side=><group key={`bracket-${side}`} position={[side*(desk.width/2-.18),topY-desk.topThickness/2-.025,0]}>
-        <RoundedBox args={[.24,.05,desk.depth*.82]} radius={.007} castShadow><meshStandardMaterial color="#222624" roughness={.62} metalness={.5}/></RoundedBox>
-        {[-.43,.43].map(z=><mesh key={z} position={[0,-.03,z]}><cylinderGeometry args={[.015,.015,.012,6]}/><meshStandardMaterial color="#888479" metalness={.78} roughness={.4}/></mesh>)}
-      </group>)}
-      <RoundedBox args={[desk.width * .9, .1, .08]} radius={.012} smoothness={2} position={[0, topY - .18, -desk.depth * .38]} castShadow><meshStandardMaterial color="#252b2e" roughness={.52} metalness={.7} /></RoundedBox>
-      <RoundedBox args={[desk.width * .88, .08, .18]} radius={.012} smoothness={2} position={[0, topY - .24, -desk.depth * .43]}><meshStandardMaterial color="#151b1e" roughness={.7} metalness={.5} /></RoundedBox>
-      <mesh position={[0, topY + desk.topThickness / 2 + .001, -desk.depth * .4]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[.038,.051,32]} /><meshStandardMaterial color="#292e31" roughness={.5} metalness={.65} /></mesh>
-      <mesh position={[0, topY + desk.topThickness / 2 + .0008, -desk.depth * .4]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[.038,24]} /><meshStandardMaterial color="#080d0f" roughness={.9} /></mesh>
-      {[-1,1].map(side => <RoundedBox key={side} args={[.23,.045,desk.depth*.74]} radius={.016} smoothness={2} position={[side*(desk.width/2-.18),floor+.024,0]} castShadow><meshStandardMaterial color="#22282b" roughness={.48} metalness={.65} /></RoundedBox>)}
-    </group>
-  );
+function OfficeDesk() {
+  // Hits bubble to the existing deskTapHandlers; the GLB adds no interaction layer.
+  return <group userData={META.desk}><RoomFurnitureAsset url="/room/models/leo-desk.glb"/></group>;
 }
 
 function OfficeChair() {
@@ -418,22 +264,6 @@ function NotebookAndWatch({ surfaceY }: { surfaceY: number }) {
   );
 }
 
-function CoffeeCup({ surfaceY }: { surfaceY: number }) {
-  const cup = DESK_OBJECT_DIMENSIONS.coffeeCup;
-  const radius = cup.diameter / 2;
-  const shell = useMemo(() => new THREE.LatheGeometry([[0, .005], [radius * .78, .005], [radius * .91, .012], [radius, cup.height], [radius - .003, cup.height], [radius * .84, .014], [0, .014]].map(([r,y]) => new THREE.Vector2(r,y)), 32), [radius, cup.height]);
-  useEffect(() => () => shell.dispose(), [shell]);
-  return (
-    <DeskInteractiveItem position={[.47, surfaceY, .37]} meta={META.coffee}>
-      <mesh position={[0, .0025, 0]} castShadow><cylinderGeometry args={[radius * 1.15, radius * 1.15, .005, 28]} /><meshStandardMaterial color="#b79a73" roughness={.74} /></mesh>
-      <mesh geometry={shell} castShadow receiveShadow><meshPhysicalMaterial color="#e8e1d5" roughness={.3} clearcoat={.35} /></mesh>
-      <mesh position={[0, cup.height - .008, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[radius * .91, 32]} /><meshStandardMaterial color="#25140b" roughness={.88} /></mesh>
-      <mesh position={[radius * 1.02, cup.height * .55, 0]} castShadow><torusGeometry args={[radius * .42, radius * .12, 10, 22, Math.PI * 1.45]} /><meshStandardMaterial color="#e8e1d5" roughness={.5} /></mesh>
-      <mesh position={[0, cup.height, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[radius - .0015, .0015, 8, 32]} /><meshStandardMaterial color="#eee8dc" roughness={.24} /></mesh>
-    </DeskInteractiveItem>
-  );
-}
-
 export function RuntianBottle({ surfaceY }: { surfaceY: number }) {
   const bottle = DESK_OBJECT_DIMENSIONS.runtianBottle;
   return <DeskInteractiveItem position={[.47, surfaceY, .035]} rotation={[0, .22, 0]} meta={META.runtian}>
@@ -482,7 +312,6 @@ export function DeskAccessories() {
       <DeskPlant position={[-1.06, surfaceY + .06075, -.12]} scale={.45} meta={META.plantLeft} />
       <Phone surfaceY={surfaceY} />
       <NotebookAndWatch surfaceY={surfaceY} />
-      <CoffeeCup surfaceY={surfaceY} />
       <RuntianBottle surfaceY={surfaceY} />
       <DeskPlant position={[1.11, surfaceY + .06075, -.49]} scale={.45} meta={META.plantRight} />
       <FujiXT5 surfaceY={surfaceY} />
@@ -492,35 +321,13 @@ export function DeskAccessories() {
 }
 
 export function CentralWorkspace() {
-  const woodTexture = useGeneratedTexture(createWoodTexture);
   const surfaceY = .14 + CENTRAL_WORKSPACE.desk.height + CENTRAL_WORKSPACE.desk.topThickness / 2;
   const deskBoundsRef = useRef<THREE.Group>(null);
   const pcBoundsRef = useRef<THREE.Group>(null);
 
-  useLayoutEffect(() => {
-    const deskGroup = deskBoundsRef.current;
-    const pcGroup = pcBoundsRef.current;
-    if (!deskGroup || !pcGroup) return;
-
-    deskGroup.updateWorldMatrix(true, true);
-    pcGroup.updateWorldMatrix(true, true);
-    const pcBounds = new THREE.Box3().setFromObject(pcGroup);
-    const intersections: string[] = [];
-
-    deskGroup.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) return;
-      const partBounds = new THREE.Box3().setFromObject(object);
-      if (pcBounds.intersectsBox(partBounds)) intersections.push(object.uuid);
-    });
-
-    if (process.env.NODE_ENV !== "production" && intersections.length > 0) {
-      console.warn("Desktop PC intersects desk geometry", intersections);
-    }
-  }, []);
-
   return (
     <group position={CENTRAL_WORKSPACE.position}>
-      <group ref={deskBoundsRef}><OfficeDesk wood={woodTexture} /></group>
+      <group ref={deskBoundsRef}><OfficeDesk /></group>
       <ChairMotion><OfficeChair /></ChairMotion>
       {/* Scale about the supporting surface, so every prop stays grounded.
           Move the enlarged arrangement back to keep the mat inside the edge. */}
