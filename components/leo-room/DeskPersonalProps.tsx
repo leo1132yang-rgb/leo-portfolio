@@ -4,6 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import type { StitchPose } from '@/data/leoRoomCollection';
 
 function labelTexture() {
   const canvas = document.createElement("canvas");
@@ -36,8 +37,8 @@ export function RuntianReferenceModel({ url, height, diameter }: { url: string; 
     const geometries: THREE.BufferGeometry[] = [];
     const texture = labelTexture();
     // Alpha blending avoids a full-scene transmission pass / extra render target.
-    const pet = new THREE.MeshPhysicalMaterial({ color: "#d6e7eb", metalness: 0, roughness: .17, clearcoat: .55, clearcoatRoughness: .16, transparent: true, opacity: .12, depthWrite: false, side: THREE.FrontSide });
-    const water = new THREE.MeshPhysicalMaterial({ color: "#91bdc8", metalness: 0, roughness: .11, transparent: true, opacity: .085, depthWrite: false, clearcoat: .3 });
+    const pet = new THREE.MeshPhysicalMaterial({ color: "#dee9e5", metalness: 0, roughness: .2, clearcoat: .45, clearcoatRoughness: .2, transparent: true, opacity: .22, depthWrite: false, side: THREE.FrontSide });
+    const water = new THREE.MeshPhysicalMaterial({ color: "#adcbd0", metalness: 0, roughness: .15, transparent: true, opacity: .10, depthWrite: false, clearcoat: .2 });
     const cap = new THREE.MeshStandardMaterial({ color: "#08783e", roughness: .48, metalness: 0 });
     const label = new THREE.MeshStandardMaterial({ map: texture, roughness: .57, metalness: 0 });
     const add = (geometry: THREE.BufferGeometry, material: THREE.Material, name: string, shadow = false) => {
@@ -96,12 +97,12 @@ export function PropContact({ radius, opacity }: { radius: number; opacity: numb
 
 /** A small heart-holding PVC Stitch, modelled from the supplied first reference.
  * Static shapes are merged by material: seven draw calls, no downloaded textures. */
-export function StitchFigurine() {
+export function StitchFigurine({pose='heart'}:{pose?:StitchPose}) {
   const asset=useMemo(()=>{
     const group=new THREE.Group();
-    const palette=["#497eab","#99c8dc","#cb839f","#15232f","#243f61","#e9e5dd","#7199b4"];
+    const palette=["#5086ab","#a0c4d3","#d294aa","#15232f","#2e4d68","#eee9df","#789fb4"];
     const parts:THREE.BufferGeometry[][]=palette.map(()=>[]);
-    const sphere=new THREE.SphereGeometry(1,18,12);
+    const sphere=new THREE.SphereGeometry(1,12,8);
     const put=(g:THREE.BufferGeometry,mat:number,p:number[],s:number[]=[1,1,1],r:number[]=[0,0,0])=>{
       const matrix=new THREE.Matrix4().compose(new THREE.Vector3(...p as [number,number,number]),new THREE.Quaternion().setFromEuler(new THREE.Euler(...r as [number,number,number])),new THREE.Vector3(...s as [number,number,number]));
       const copy = (g.index ? g.toNonIndexed() : g.clone()).applyMatrix4(matrix);
@@ -122,7 +123,8 @@ export function StitchFigurine() {
     oval(1,[0,.073,.024],[.030,.012,.012]);
     for(const side of [-1,1]){
       oval(0,[side*.018,.010,.008],[.015,.010,.023]);
-      oval(0,[side*.027,.045,.022],[.010,.017,.010],[0,0,side*.75]);
+      const raised=pose==='wave'&&side===1;
+      oval(0,[side*.030,raised?.080:.045,.022],[.010,raised?.022:.017,.010],[0,0,raised?-.45:side*.75]);
       oval(1,[side*.020,.094,.023],[.017,.022,.008],[0,0,-side*.25]);
       oval(3,[side*.021,.096,.029],[.0115,.016,.0055],[0,0,-side*.25]);
       oval(5,[side*.019,.105,.0338],[.0033,.004,.0016]);
@@ -135,15 +137,37 @@ export function StitchFigurine() {
     oval(4,[0,.085,.032],[.014,.011,.010]);
     const smile=new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(-.018,.073,.032),new THREE.Vector3(0,.068,.035),new THREE.Vector3(.018,.073,.032)]),12,.0009,5,false);put(smile,4,[0,0,0]);smile.dispose();
     const heart=new THREE.Shape();heart.moveTo(0,-.020);heart.bezierCurveTo(-.026,-.002,-.023,.016,-.011,.016);heart.quadraticCurveTo(-.004,.019,0,.010);heart.quadraticCurveTo(.011,.023,.021,.010);heart.bezierCurveTo(.029,-.003,.008,-.015,0,-.020);
-    const heartGeo=new THREE.ExtrudeGeometry(heart,{depth:.006,bevelEnabled:true,bevelThickness:.002,bevelSize:.0015,bevelSegments:2,curveSegments:8,steps:1});put(heartGeo,2,[0,.041,.026],[.78,.78,1],[0,0,-.12]);heartGeo.dispose();
-    for(const side of [-1,1])oval(0,[side*.016,.042,.035],[.009,.008,.006]);
+    if(pose==='heart'){
+      const heartGeo=new THREE.ExtrudeGeometry(heart,{depth:.006,bevelEnabled:true,bevelThickness:.002,bevelSize:.0015,bevelSegments:2,curveSegments:6,steps:1});put(heartGeo,2,[0,.041,.026],[.78,.78,1],[0,0,-.12]);heartGeo.dispose();
+      for(const side of [-1,1])oval(0,[side*.016,.042,.035],[.009,.008,.006]);
+    }
+    if(pose==='wave')oval(0,[.043,.097,.023],[.014,.012,.007],[0,0,-.3]);
+    if(pose==='chef'){
+      const band=new THREE.CylinderGeometry(.021,.022,.011,16);put(band,5,[0,.122,-.002]);band.dispose();
+      for(const x of [-.013,0,.013])oval(5,[x,.135,-.002],[.014,.014,.013]);
+      oval(5,[0,.043,.020],[.020,.024,.003]);oval(2,[0,.065,.023],[.014,.003,.004]);
+    }
+    if(pose==='traveler'){
+      oval(4,[0,.116,-.004],[.042,.004,.031]);oval(6,[0,.124,-.006],[.024,.014,.021]);
+      oval(4,[.023,.041,.021],[.015,.017,.010]);
+    }
+    if(pose==='music'){
+      const band=new THREE.TorusGeometry(.038,.0028,5,16,Math.PI);put(band,3,[0,.092,.001]);band.dispose();
+      for(const side of [-1,1])oval(3,[side*.039,.090,.005],[.006,.014,.012]);
+      oval(4,[0,.041,.027],[.019,.013,.004]);
+    }
+    if(pose==='flower'){
+      for(let i=0;i<5;i++){const a=i*Math.PI*2/5;oval(2,[Math.cos(a)*.008,.046+Math.sin(a)*.008,.030],[.006,.006,.003]);}
+      oval(5,[0,.046,.034],[.004,.004,.002]);
+      oval(6,[0,.033,.029],[.0015,.01,.0015]);
+    }
     oval(0,[0,.116,-.006],[.004,.009,.005],[0,0,-.2]);oval(0,[.008,.114,-.006],[.003,.007,.005],[0,0,-.35]);
     sphere.dispose();
     const geometries:THREE.BufferGeometry[]=[],materials:THREE.Material[]=[];
-    parts.forEach((list,i)=>{if(!list.length)return;const geometry=mergeGeometries(list)!;list.forEach(g=>g.dispose());const material=new THREE.MeshStandardMaterial({color:palette[i],roughness:i===3?.24:.61,metalness:0});const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);geometries.push(geometry);materials.push(material);});
+    parts.forEach((list,i)=>{if(!list.length)return;const geometry=mergeGeometries(list)!;list.forEach(g=>g.dispose());const material=new THREE.MeshPhysicalMaterial({color:palette[i],roughness:i===3?.21:i===4?.36:.53,metalness:0,clearcoat:i===3?.55:.08,clearcoatRoughness:.35});const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=true;mesh.receiveShadow=true;group.add(mesh);geometries.push(geometry);materials.push(material);});
     const bounds=new THREE.Box3().setFromObject(group);const scale=.13/(bounds.max.y-bounds.min.y);group.scale.setScalar(scale);group.position.y=-bounds.min.y*scale;
     return {group,dispose:()=>{geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());}};
-  },[]);
+  },[pose]);
   useEffect(()=>()=>asset.dispose(),[asset]);
   return <primitive object={asset.group} dispose={null} />;
 }

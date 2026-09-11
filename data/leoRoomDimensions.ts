@@ -1,7 +1,7 @@
 export const ROOM = {
-  width: 13,
-  depth: 8,
-  height: 3.8,
+  width: 16,
+  depth: 10.4,
+  height: 4.15,
   wall: .18,
 } as const;
 
@@ -25,11 +25,12 @@ export const ROOM_STRUCTURE = {
 
 export const ROOM_LAYOUT = {
   journey: {
-    position: [-halfWidth + ROOM.wall / 2 + .015, 2.05, -.3] as [number, number, number],
-    scale: .76,
+    position: [-6.8, 2.05, .75] as [number, number, number],
+    scale: .82,
+    yaw: 1.15,
   },
   gallery: {
-    position: [-3.15, 2.2, -halfDepth + ROOM.wall / 2 + .025] as [number, number, number],
+    position: [-3.8, 2.5, -halfDepth + ROOM.wall / 2 + .025] as [number, number, number],
     scale: .62,
   },
   digital: {
@@ -41,9 +42,15 @@ export const ROOM_LAYOUT = {
     scale: .7,
   },
   rug: {
-    position: [0, 0, .42] as [number, number, number],
+    position: [0, 0, 1.15] as [number, number, number],
     radius: 2.4,
   },
+} as const;
+
+// Furniture stays at its existing size; only its position follows the larger shell.
+export const ROOM_FURNITURE = {
+  bookshelf: [6.55, 0, -4.65] as [number, number, number],
+  livingShelf: [-3.8, 0, -4.63] as [number, number, number],
 } as const;
 
 export const ROOM_LIGHTING = {

@@ -138,11 +138,12 @@ export function useRoomInteractionController() {
   }, [publish]);
 
   const takeCameraControl = useCallback(() => {
-    if (current.current.content || seatActive() || lifeRef.current.chairDragging || current.current.interactionState === "FREE_EXPLORE") return;
+    if (current.current.content || seatActive() || lifeRef.current.chairDragging || current.current.interactionState === "FREE_EXPLORE" || current.current.interactionState === "FOCUSED") return;
     updateLife({ microHint: null });
     ++generation.current;
     driver.current?.unlock();
-    publish(FREE);
+    // An adjustment cancels travel but keeps the inspected area's existing actions.
+    publish(current.current.activeHotspot ? {...current.current,interactionState:"FOCUSED"} : FREE);
   }, [publish]);
   const selectLivingShelfItem = useCallback((id: LivingShelfItem | null) => {
     if (current.current.content || seatActive() || lifeRef.current.chairDragging) id = null;

@@ -40,14 +40,17 @@ Module._load = function(name,parent,isMain){
   return originalLoad.call(this,name,parent,isMain);
 };
 for(const ext of ['.ts','.tsx'])require.extensions[ext]=(module,filename)=>module._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,target:ts.ScriptTarget.ES2020}}).outputText,filename);
+const {StitchCollectionCabinet}=require('../../components/leo-room/StitchCollectionCabinet.tsx');
+const {ROOM_COLLECTION}=require('../../data/leoRoomCollection.ts');
+const {RoomLifeContext}=require('../../components/leo-room/RoomLifeContext.tsx');
 const {CentralWorkspace}=require('../../components/leo-room/CentralWorkspace.tsx');
 const {DeskInteractionScope}=require('../../components/leo-room/DeskInteractiveItem.tsx');
 const {deskItems}=require('../../data/deskItems.ts');
 const {CENTRAL_WORKSPACE,DESK_PROP_SCALE}=require('../../data/leoRoomWorkspace.ts');
 const canvas={style:{},width:1280,height:720,addEventListener(){},removeEventListener(){},getBoundingClientRect:()=>({left:0,top:0,width:1280,height:720}),getContext:()=>({})};
 const renderer={domElement:canvas,render(){},setSize(){},setPixelRatio(){},setClearAlpha(){},shadowMap:{},xr:{enabled:false,isPresenting:false,addEventListener(){},removeEventListener(){}},capabilities:{},getPixelRatio:()=>1,dispose(){},forceContextLoss(){},renderLists:{dispose(){}}};
-let state,lastSelection=null;
-const renderTree=()=>jsx(DeskInteractionScope,{enabled:true,onSelect:s=>{lastSelection=s}},jsx(CentralWorkspace));
+let state,lastSelection=null,lastFocus=null;
+const renderTree=()=>jsx(DeskInteractionScope,{enabled:true,onSelect:s=>{lastSelection=s}},jsx(React.Fragment,null,jsx('group',{name:'desk-test'},jsx(CentralWorkspace)),jsx(RoomLifeContext.Provider,{value:{objectsEnabled:true,focusHotspot:id=>{lastFocus=id}}},jsx(StitchCollectionCabinet,{wood:new THREE.Texture()}))));
 const assert=(condition,message)=>{if(!condition)throw Error(message)};
 const fire=(event,payload)=>{for(const fn of listeners.get(event)||[])fn(payload)};
 (async()=>{
@@ -87,30 +90,46 @@ const fire=(event,payload)=>{for(const fn of listeners.get(event)||[])fn(payload
   // Separate props must not occupy one another's space. Keyboard/mouse sit on
   // the intentional desk mat; accessories share no other overlap.
   const topItems=items.filter(o=>o.userData.interactiveId!=='desktop-pc');
-  const stitch=state.scene.getObjectByName('desk-stitch');
-  assert(stitch,'Missing Stitch');
-  const stitchBox=new THREE.Box3().setFromObject(stitch);
-  assert(Math.abs(stitchBox.getSize(new THREE.Vector3()).y-.13*DESK_PROP_SCALE)<.001,'Stitch must match requested display scale');
-  assert(Math.abs(stitchBox.min.y-surface)<.0001,'Stitch base must touch desk');
-  console.log('stitch',stitchBox.getSize(new THREE.Vector3()).toArray());
+  assert(!state.scene.getObjectByName('desk-stitch'),'Single desktop Stitch should be removed');
+  const cabinet=state.scene.getObjectByName('stitch-collection-cabinet');
+  assert(cabinet,'Missing collection cabinet');
+  const figures=ROOM_COLLECTION.figures.map(f=>state.scene.getObjectByName('collection-'+f.id));
+  assert(figures.length===6&&figures.every(Boolean),'Six configured poses must render');
+  for(let i=0;i<figures.length;i++){
+    const b=new THREE.Box3().setFromObject(figures[i]);
+    assert(Math.abs(b.min.y-(.322+ROOM_COLLECTION.figures[i].row*.42))<.001,'Figure not supported');
+    assert(b.min.x>ROOM_COLLECTION.position[0]-.47&&b.max.x<ROOM_COLLECTION.position[0]+.47,'Figure outside cabinet');
+    assert(b.max.y<.69+ROOM_COLLECTION.figures[i].row*.42,'Figure hits shelf above');
+  }
+  const ch=cabinet.__r3f.handlers;
+  ch.onPointerDown({stopPropagation(){},nativeEvent:{clientX:10,clientY:10}});
+  ch.onClick({stopPropagation(){},delta:0,nativeEvent:{clientX:10,clientY:10}});
+  assert(lastFocus==='collection','Collection must use original focus handler');lastFocus=null;
+  ch.onPointerDown({stopPropagation(){},nativeEvent:{clientX:10,clientY:10}});
+  ch.onClick({stopPropagation(){},delta:12,nativeEvent:{clientX:22,clientY:10}});
+  assert(lastFocus===null,'Dragging collection must not click');
   for(let i=0;i<topItems.length;i++){
     const a=topItems[i],id=a.userData.interactiveId,box=boxes.get(id);
     const support=surface+(['keyboard','mouse'].includes(id)?.008*DESK_PROP_SCALE:0);
     assert(Math.abs(box.min.y-support)<.001,id+' not grounded');
-    assert(!box.intersectsBox(stitchBox),id+' intersects Stitch');
     for(let j=i+1;j<topItems.length;j++)assert(!box.intersectsBox(boxes.get(topItems[j].userData.interactiveId)),id+' intersects '+topItems[j].userData.interactiveId);
   }
   const bottle=boxes.get('runtian-water');
-  assert(Math.abs(bottle.getSize(new THREE.Vector3()).y-.205*DESK_PROP_SCALE)<.0001,'Bottle height');
+  assert(Math.abs(bottle.getSize(new THREE.Vector3()).y-.215*DESK_PROP_SCALE)<.0001,'Bottle height');
   assert(Math.abs(boxes.get('keyboard').getSize(new THREE.Vector3()).x-.44*DESK_PROP_SCALE)<.0001,'Keyboard width');
   const pc=boxes.get('desktop-pc');const desk=state.scene.getObjectsByProperty('type','Group').find(g=>g.userData.interactiveId==='office-desk');
+  const aquarium=state.scene.getObjectByName('desk-aquascape');
+  const tankBox=new THREE.Box3().setFromObject(aquarium);
+  // The tank body must be supported by the tabletop, with no phone/prop overlap.
+  assert(tankBox.min.z>=CENTRAL_WORKSPACE.position[2]-CENTRAL_WORKSPACE.desk.depth/2,'Aquarium overhangs the back edge');
+  for(const item of topItems)assert(!tankBox.intersectsBox(boxes.get(item.userData.interactiveId)),'Aquarium intersects '+item.userData.interactiveId);
   desk.traverse(o=>{if(o.isMesh)assert(!pc.intersectsBox(new THREE.Box3().setFromObject(o)),'PC intersects desk')});
   const minClearance=(.14+CENTRAL_WORKSPACE.desk.height-CENTRAL_WORKSPACE.desk.topThickness/2)-pc.max.y;
   console.log('PC top clearance:',minClearance.toFixed(3),'m');
-  let triangles=0,meshes=0;state.scene.traverse(o=>{if(o.isMesh){meshes++;triangles+=(o.geometry.index?.count||o.geometry.attributes.position?.count||0)/3*(o.isInstancedMesh?o.count:1)}});
+  let triangles=0,meshes=0;state.scene.getObjectByName('desk-test').traverse(o=>{if(o.isMesh){meshes++;triangles+=(o.geometry.index?.count||o.geometry.attributes.position?.count||0)/3*(o.isInstancedMesh?o.count:1)}});
   console.log('Desktop meshes:',meshes,'triangles:',triangles);
   assert(triangles<65000,'Desktop triangle budget exceeded');
-  for(const [name,object] of [['bottle',items.find(o=>o.userData.interactiveId==='runtian-water')],['stitch',stitch]]){let count=0,draws=0;object.traverse(o=>{if(o.isMesh){draws++;count+=(o.geometry.index?.count||o.geometry.attributes.position.count)/3;}});console.log(name,{triangles:count,draws});}
+  for(const [name,object] of [['bottle',items.find(o=>o.userData.interactiveId==='runtian-water')],['collection',cabinet]]){let count=0,draws=0;object.traverse(o=>{if(o.isMesh){draws++;count+=(o.geometry.index?.count||o.geometry.attributes.position.count)/3;}});console.log(name,{triangles:count,draws});}
   await React.act(async()=>root.unmount());
   process.exit(0);
 })().catch(e=>{console.error(e);process.exit(1)});

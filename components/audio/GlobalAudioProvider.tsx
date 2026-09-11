@@ -49,10 +49,11 @@ function useAudioModel(){
  const registerVinyl=useCallback(()=>{setRoomMounted(true);return()=>setRoomMounted(false);},[]);
  const selectVinyl=useCallback((id:string)=>{if(!vinylTracks.some(t=>t.id===id))return;if(id!==latest.current.vinylId)engine.current?.restart(id);setVinylId(id);},[]);
  const toggleVinyl=useCallback(()=>{setVinylWantsPlay(p=>!p);setRetry(n=>n+1);},[]);
+ const playVinyl=useCallback(()=>{setVinylWantsPlay(true);setRetry(n=>n+1);},[]);
  const seekVinyl=useCallback((time:number)=>{if(latest.current.currentTrack==='room'&&latest.current.roomMounted)engine.current?.seek(time);},[]);
  const enableAudio=useCallback(()=>setEnabled(true),[]),disableAudio=useCallback(()=>setEnabled(false),[]),toggleAudio=useCallback(()=>setEnabled(v=>!v),[]),setVolume=useCallback((n:number)=>setVolumeState(clamp(n)),[]);
  const isPlaying=media.key===sourceKey&&media.status==='playing'&&shouldPlay;
- return {element,currentTrack,isEnabled,isPlaying,volume,enableAudio,disableAudio,toggleAudio,setVolume,switchTrack,registerVinyl,selectVinyl,toggleVinyl,seekVinyl,vinylTrack,vinylWantsPlay,vinylIsPlaying:usingVinyl&&isPlaying,vinylStatus:usingVinyl&&media.key===vinylId?media.status:'paused',vinylTime:media.key===vinylId?media.time:0,vinylDuration:media.key===vinylId?media.duration:0,vinylErrors};
+ return {element,currentTrack,isEnabled,isPlaying,volume,enableAudio,disableAudio,toggleAudio,setVolume,switchTrack,registerVinyl,selectVinyl,toggleVinyl,playVinyl,seekVinyl,vinylTrack,vinylWantsPlay,vinylIsPlaying:usingVinyl&&isPlaying,vinylStatus:usingVinyl&&media.key===vinylId?media.status:'paused',vinylTime:media.key===vinylId?media.time:0,vinylDuration:media.key===vinylId?media.duration:0,vinylErrors};
 }
 type AudioValue=Omit<ReturnType<typeof useAudioModel>,'element'>;
 const GlobalAudioContext=createContext<AudioValue|null>(null);

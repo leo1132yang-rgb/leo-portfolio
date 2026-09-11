@@ -17,7 +17,7 @@ Module._load=function(name,parent,isMain){if(name==='@react-three/drei')return {
 for(const ext of ['.ts','.tsx'])require.extensions[ext]=(m,f)=>m._compile(ts.transpileModule(fs.readFileSync(f,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,target:ts.ScriptTarget.ES2020}}).outputText,f);
 const {useRoomInteractionController}=require('../../components/leo-room/useRoomInteractionController.ts');
 const {RoomCameraControls}=require('../../components/leo-room/RoomCameraControls.tsx');
-const {leoRoomOverviewCamera,leoRoomMobileOverviewCamera}=require('../../data/leoRoomCamera.ts');
+const {leoRoomOverviewCamera,leoRoomMobileOverviewCamera,leoRoomFocusTargets}=require('../../data/leoRoomCamera.ts');
 let interaction,state,registrations=0;
 function Harness(){interaction=useRoomInteractionController();return React.createElement(RoomCameraControls,{interaction})}
 const act=React.act;
@@ -33,7 +33,7 @@ async function run(width){
  const canvas={style:{},dataset:{},width,height:844,addEventListener(){},removeEventListener(){},getBoundingClientRect:()=>({left:0,top:0,width,height:844}),getContext:()=>({})};
  const gl={domElement:canvas,render(){},setSize(){},setPixelRatio(){},setClearAlpha(){},shadowMap:{},xr:{enabled:false,isPresenting:false,addEventListener(){},removeEventListener(){}},capabilities:{},getPixelRatio:()=>1,dispose(){},forceContextLoss(){},renderLists:{dispose(){}}};
  const root=createRoot(canvas);await root.configure({gl,frameloop:'never',size:{width,height:844,top:0,left:0},camera:{position:[-4.6,7.4,15.7]},onCreated:s=>state=s});await act(async()=>root.render(React.createElement(Harness)));await frame();free();await invoke(()=>state.setEvents({connected:surface}));
- await invoke(()=>interaction.focusHotspot('bookshelf'));await frame();assert.equal(interaction.interactionState,'FOCUSED');assert.equal(interaction.activeHotspot,'bookshelf');assert(pose().target.distanceTo(new THREE.Vector3(5.35,1.62,-3.4))<.01);await invoke(esc);free();await invoke(()=>interaction.resetView());await frame();
+ await invoke(()=>interaction.focusHotspot('bookshelf'));await frame();assert.equal(interaction.interactionState,'FOCUSED');assert.equal(interaction.activeHotspot,'bookshelf');assert(pose().target.distanceTo(new THREE.Vector3(...leoRoomFocusTargets.bookshelf.target))<.01);await invoke(esc);free();await invoke(()=>interaction.resetView());await frame();
 
  const aquariumPose=pose();await invoke(()=>interaction.toggleAquarium());assert.equal(interaction.aquariumBright,false);assert(equalPose(aquariumPose,pose()));await invoke(()=>interaction.toggleAquarium());assert.equal(interaction.aquariumBright,true);
  await invoke(()=>interaction.registerVinylAction(()=>{vinylIntent=!vinylIntent;}));
@@ -66,7 +66,7 @@ async function run(width){
  // Late focus completions must not reopen a module or replace its state.
  await invoke(()=>interaction.focusHotspot('journey'));await frame(5);await invoke(()=>interaction.openContent({type:'world'}));await frame();assert.equal(interaction.content.type,'world');await invoke(esc);await frame();free();
  await invoke(()=>interaction.focusHotspot('gallery'));await frame();await invoke(()=>interaction.cancelBackground());free();
- await invoke(()=>interaction.focusHotspot('journey'));await frame(8);await invoke(()=>interaction.takeCameraControl());await frame();free();
+ await invoke(()=>interaction.focusHotspot('journey'));await frame(8);await invoke(()=>interaction.takeCameraControl());await frame();await invoke(esc);free();
  await invoke(()=>interaction.resetView());await frame();free();const overview=width<768?leoRoomMobileOverviewCamera:leoRoomOverviewCamera;assert(state.camera.position.distanceTo(new THREE.Vector3(...overview.position))<.03,'reset wrong position');
  await invoke(esc);free();
  await invoke(()=>interaction.toggleLighting());assert.equal(interaction.lightingMode,'ROOM_LIGHT_OFF');assert.equal(interaction.shelfLampOn,true);
@@ -77,6 +77,9 @@ async function run(width){
  await invoke(()=>interaction.interactLivingShelf('drawer'));assert.equal(interaction.drawerOpen,false);assert.equal(vinylIntent,true);
  const seatBeforePointer=pose();
  await invoke(()=>{for(const f of seatedEvents.get('pointerdown')||[])f({pointerId:7,clientX:100,clientY:100});for(const f of seatedEvents.get('pointermove')||[])f({pointerId:7,clientX:220,clientY:145});for(const f of seatedEvents.get('pointerup')||[])f({pointerId:7});});await frame(60);assert(!equalPose(pose(),seatBeforePointer),'seated pointer drag failed');assert(pose().pos.distanceTo(seatBeforePointer.pos)<.0001,'seated pointer moved eye');
+ const beforeSlider=pose();
+ await invoke(()=>{for(const fn of listeners.get('keydown'))fn({key:'ArrowRight',type:'keydown',target:{closest:()=>({})},preventDefault(){},stopImmediatePropagation(){}})});await frame(30);
+ assert(equalPose(beforeSlider,pose()),'player keyboard input rotated seated camera');
  const seatedPose=pose();await invoke(()=>interaction.openContent({type:'world'}));await invoke(()=>interaction.focusHotspot('desk'));await invoke(()=>interaction.resetView());assert.equal(interaction.interactionState,'SITTING');
  for(let i=0;i<60;i++)await invoke(()=>{for(const fn of listeners.get('keydown'))fn({key:'ArrowLeft',type:'keydown',preventDefault(){},stopImmediatePropagation(){}})});await frame(60);assert(pose().pos.distanceTo(seatedPose.pos)<.0001,'look moved seated eye');assert(!equalPose(pose(),seatedPose),'look did not turn');
  await invoke(()=>state.setSize(width<768?1280:390,844));await frame(30);assert.equal(interaction.interactionState,'SITTING');assert(pose().pos.distanceTo(seatedPose.pos)<.0001,'resize moved seated eye');assert.equal(orbit.enabled,false);await invoke(()=>state.setSize(width,844));await frame(30);

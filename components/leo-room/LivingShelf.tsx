@@ -8,6 +8,7 @@ import type { LivingShelfItem } from './useRoomInteractionController';
 import { Block, Books, Plant } from './StudioInterior';
 import { SHELF_BOOKS } from '@/data/leoRoomBookshelf';
 import { photoWallImages } from '@/data/photoWall';
+import { ROOM_FURNITURE } from '@/data/leoRoomDimensions';
 import { useGlobalAudio } from '@/hooks/useGlobalAudio';
 import { useLanguage } from '@/components/LanguageProvider';
 import styles from './RoomNavigation.module.css';
@@ -23,7 +24,7 @@ export function LivingShelf({wood}:{wood:THREE.Texture}) {
   const {language}=useLanguage();
   const root=useRef<THREE.Group>(null);
   const hovered=useRef<LivingShelfItem|null>(null), down=useRef<[number,number]|null>(null);
-  const vectors=useMemo(()=>({point:new THREE.Vector3(),view:new THREE.Vector3(),origin:new THREE.Vector3(-3.05,0,-3.43)}),[]);
+  const vectors=useMemo(()=>({point:new THREE.Vector3(),view:new THREE.Vector3(),origin:new THREE.Vector3(...ROOM_FURNITURE.livingShelf)}),[]);
   const elapsed=useRef(0);
   useFrame((_,dt)=>{
     elapsed.current+=dt;if(elapsed.current<.12)return;elapsed.current=0;
@@ -48,7 +49,7 @@ export function LivingShelf({wood}:{wood:THREE.Texture}) {
     onPointerDown={e=>{e.stopPropagation();down.current=[e.clientX,e.clientY];}}
     onClick={(e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();const p=down.current;down.current=null;if(p&&e.delta<=8&&Math.hypot(e.clientX-p[0],e.clientY-p[1])<=8)life.interactLivingShelf(id);}}><RoomHover>{children}</RoomHover></group>;
   const active=life.objectsEnabled?(life.readingBook ? "book" : life.activeLivingShelfItem):null;
-  return <group ref={root} position={[-3.05,0,-3.43]} name="living-shelf">
+  return <group ref={root} position={ROOM_FURNITURE.livingShelf} name="living-shelf">
     <Block size={[4.05,.06,.63]} at={[0,.76,0]} wood={wood}/><Block size={[4.05,.06,.6]} at={[0,.16,0]} wood={wood}/>
     <Block size={[4,.55,.035]} at={[0,.46,-.28]}/>
     {[-1.98,-.68,.68,1.98].map(x=><Block key={x} size={[.065,.59,.6]} at={[x,.46,0]} wood={wood}/>)}

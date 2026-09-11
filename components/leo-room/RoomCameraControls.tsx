@@ -5,13 +5,16 @@ import { CameraControls, type CameraControlsImpl } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { leoRoomExploreProfiles, leoRoomFocusTargets, leoRoomMobileOverviewCamera, leoRoomOverviewCamera } from "@/data/leoRoomCamera";
+import { leoRoomExploreProfiles, leoRoomFocusTargets, leoRoomInspectSize, leoRoomMobileOverviewCamera, leoRoomOverviewCamera } from "@/data/leoRoomCamera";
+import { ROOM, ROOM_STRUCTURE } from "@/data/leoRoomDimensions";
+import { constrainRoomCamera, sweepRoomCamera } from "./roomSpatialBounds";
 import { ROOM_LIFE } from "@/data/leoRoomLife";
 import type { RoomCameraDriver, RoomInteractionController } from "./useRoomInteractionController";
 
 export function RoomCameraControls({ interaction }: { interaction: RoomInteractionController }) {
   const ref = useRef<CameraControlsImpl>(null);
   const { camera, size, gl, raycaster, events } = useThree();
+  const chairX = useRef(interaction.chairX); chairX.current=interaction.chairX;
   const touchMobile = useRoomMobile();
   const mobile = size.width < 768 || touchMobile;
   const profile = mobile ? leoRoomExploreProfiles.mobile : leoRoomExploreProfiles.desktop;
@@ -20,6 +23,8 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
   const seatActiveRef = useRef(interaction.seatActive);
   seatActiveRef.current = interaction.seatActive;
   const initialised = useRef(false);
+  const travelGeneration = useRef(0);
+  const lastCamera = useRef<THREE.Vector3 | null>(null);
   const seated = useRef(false);
   const look = useRef({ yaw: 0, pitch: 0, shownYaw: 0, shownPitch: 0 });
   const animation = useRef<{ elapsed: number; duration: number; from: THREE.Vector3; fromTarget: THREE.Vector3; to: THREE.Vector3; target: THREE.Vector3; mid?: THREE.Vector3; midTarget?: THREE.Vector3; fromFov: number; toFov: number; resolve: () => void; sitting: boolean } | null>(null);
@@ -52,13 +57,24 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
       void orbit.setLookAt(...seatEye.toArray(),...target.toArray(),false);orbit.update(0);
     }
   });
+  // Run after CameraControls updates. Decorative meshes never force a dolly jump.
+  useFrame(()=>{
+    const orbit=ref.current;if(!orbit)return;
+    if(animation.current||seated.current){lastCamera.current=camera.position.clone();return;}
+    const safe=lastCamera.current?sweepRoomCamera(lastCamera.current,camera.position,chairX.current):constrainRoomCamera(camera.position,chairX.current);
+    if(Math.hypot(safe.x-camera.position.x,safe.y-camera.position.y,safe.z-camera.position.z)>.0001){
+      const target=orbit.getTarget(new THREE.Vector3(),false);
+      void orbit.setLookAt(safe.x,safe.y,safe.z,...target.toArray(),false);orbit.update(0);
+    }
+    lastCamera.current=camera.position.clone();
+  });
   useEffect(() => {
     const canvas=events.connected || gl.domElement;
     let pointer: {id:number;x:number;y:number} | null=null;
     const down=(e:PointerEvent)=>{if(!seated.current||pointer)return;pointer={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);};
     const move=(e:PointerEvent)=>{if(!seated.current||pointer?.id!==e.pointerId)return;look.current.yaw=THREE.MathUtils.clamp(look.current.yaw-(e.clientX-pointer.x)*(viewport.current.mobile?.004:.0032),-ROOM_LIFE.lookYaw*(viewport.current.mobile?.8:1),ROOM_LIFE.lookYaw*(viewport.current.mobile?.8:1));look.current.pitch=THREE.MathUtils.clamp(look.current.pitch+(e.clientY-pointer.y)*.0025,-ROOM_LIFE.lookPitch*(viewport.current.mobile?.8:1),ROOM_LIFE.lookPitch*(viewport.current.mobile?.8:1));pointer.x=e.clientX;pointer.y=e.clientY;};
     const up=(e:PointerEvent)=>{if(pointer?.id===e.pointerId){pointer=null;if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);}};
-    const key=(e:KeyboardEvent)=>{if(!seated.current||!e.key.startsWith("Arrow"))return;e.preventDefault();if(e.key==="ArrowLeft"||e.key==="ArrowRight")look.current.yaw=THREE.MathUtils.clamp(look.current.yaw+(e.key==="ArrowLeft"?.035:-.035),-ROOM_LIFE.lookYaw,ROOM_LIFE.lookYaw);else look.current.pitch=THREE.MathUtils.clamp(look.current.pitch+(e.key==="ArrowUp"?.025:-.025),-ROOM_LIFE.lookPitch,ROOM_LIFE.lookPitch);};
+    const key=(e:KeyboardEvent)=>{if(!seated.current||!e.key.startsWith("Arrow")||(e.target as HTMLElement)?.closest?.("input,button,select,textarea,[role=slider]"))return;e.preventDefault();if(e.key==="ArrowLeft"||e.key==="ArrowRight")look.current.yaw=THREE.MathUtils.clamp(look.current.yaw+(e.key==="ArrowLeft"?.035:-.035),-ROOM_LIFE.lookYaw,ROOM_LIFE.lookYaw);else look.current.pitch=THREE.MathUtils.clamp(look.current.pitch+(e.key==="ArrowUp"?.025:-.025),-ROOM_LIFE.lookPitch,ROOM_LIFE.lookPitch);};
     canvas.addEventListener("pointerdown",down,true);canvas.addEventListener("pointermove",move,true);canvas.addEventListener("pointerup",up,true);canvas.addEventListener("pointercancel",up,true);window.addEventListener("keydown",key);
     return()=>{canvas.removeEventListener("pointerdown",down,true);canvas.removeEventListener("pointermove",move,true);canvas.removeEventListener("pointerup",up,true);canvas.removeEventListener("pointercancel",up,true);window.removeEventListener("keydown",key);};
   },[gl,events.connected]);
@@ -78,6 +94,8 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
     const orbit = ref.current;
     if (!orbit || !(camera instanceof THREE.PerspectiveCamera)) return;
     const overview = mobile ? leoRoomMobileOverviewCamera : leoRoomOverviewCamera;
+
+    orbit.boundaryFriction=.25;
     const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     camera.fov = profile.fov; camera.updateProjectionMatrix();
     if (!initialised.current) {
@@ -85,13 +103,16 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
       void orbit.setLookAt(...overview.position, ...overview.target, false);
     }
     const applyLimits = () => {
+    orbit.setBoundary(new THREE.Box3(new THREE.Vector3(-ROOM_STRUCTURE.halfWidth+.02,.05,-ROOM_STRUCTURE.halfDepth+.02),new THREE.Vector3(ROOM_STRUCTURE.halfWidth-.02,ROOM.height-.05,ROOM_STRUCTURE.halfDepth-.02)));
       const { profile } = viewport.current;
       orbit.maxDistance = profile.maxDistance;
       orbit.minPolarAngle = profile.minPolarAngle; orbit.maxPolarAngle = profile.maxPolarAngle;
       orbit.minAzimuthAngle = profile.minAzimuthAngle; orbit.maxAzimuthAngle = profile.maxAzimuthAngle;
-      orbit.smoothTime = viewport.current.mobile ? .42 : .48;
+      orbit.smoothTime = viewport.current.mobile ? .32 : .38;
     };
+    applyLimits();
     const freeze = () => {
+      ++travelGeneration.current;
       if (animation.current) { animation.current.resolve(); animation.current=null; }
       seated.current=false;
       // camera-controls.stop() snaps to the queued destination. Replace that
@@ -112,11 +133,19 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
     };
     const animateSeat = (sitting: boolean) => {
       const { profile } = viewport.current;
-      freeze(); orbit.enabled=false; orbit.minDistance=.01; orbit.maxDistance=80;
+      freeze(); orbit.setBoundary(); orbit.enabled=false; orbit.minDistance=.01; orbit.maxDistance=80;
       orbit.minAzimuthAngle=-Infinity;orbit.maxAzimuthAngle=Infinity;orbit.minPolarAngle=0;orbit.maxPolarAngle=Math.PI;
       look.current={yaw:0,pitch:0,shownYaw:0,shownPitch:0};
-      return new Promise<void>(resolve=>{animation.current={elapsed:0,duration:reduced()?.01:(sitting?ROOM_LIFE.sitDuration:ROOM_LIFE.standDuration)*(viewport.current.mobile?1.3:1),from:camera.position.clone(),fromTarget:orbit.getTarget(new THREE.Vector3(),false),to:sitting?seatEye.clone():new THREE.Vector3(...ROOM_LIFE.standPosition),target:sitting?seatTarget.clone():new THREE.Vector3(...ROOM_LIFE.standTarget),mid:sitting?new THREE.Vector3(...ROOM_LIFE.standPosition):undefined,midTarget:sitting?new THREE.Vector3(4.7,1.3,.2):undefined,fromFov:camera.fov,toFov:sitting?58:profile.fov,resolve,sitting};});
+      return new Promise<void>(resolve=>{animation.current={elapsed:0,duration:reduced()?.01:(sitting?ROOM_LIFE.sitDuration:ROOM_LIFE.standDuration)*(viewport.current.mobile?1.3:1),from:camera.position.clone(),fromTarget:orbit.getTarget(new THREE.Vector3(),false),to:sitting?seatEye.clone():new THREE.Vector3(...ROOM_LIFE.standPosition),target:sitting?seatTarget.clone():new THREE.Vector3(...ROOM_LIFE.standTarget),mid:sitting?new THREE.Vector3(...ROOM_LIFE.standPosition):undefined,midTarget:sitting?new THREE.Vector3(...ROOM_LIFE.standTarget):undefined,fromFov:camera.fov,toFov:sitting?58:profile.fov,resolve,sitting};});
     };
+    const moveTo = (to:THREE.Vector3,target:THREE.Vector3) => new Promise<void>(resolve=>{
+      const from=camera.position.clone(), fromTarget=orbit.getTarget(new THREE.Vector3(),false);
+      // Cartesian travel avoids the wide spherical arcs that crossed side walls.
+      const lift=from.y<1.65&&from.distanceTo(to)>3;
+      animation.current={elapsed:0,duration:reduced()?.01:1.15,from,fromTarget,to,target,
+        mid:lift?new THREE.Vector3(from.x,2.4,from.z):undefined,
+        midTarget:lift?fromTarget.clone():undefined,fromFov:camera.fov,toFov:camera.fov,resolve,sitting:false};
+    });
     const driver: RoomCameraDriver = {
       lock: () => { freeze(); orbit.enabled=false; },
       sit: () => animateSeat(true),
@@ -128,6 +157,7 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
       focus: async (id, selection) => {
         const { mobile, profile } = viewport.current;
         freeze(); applyLimits();
+        const generation=travelGeneration.current;
         if (selection) {
           const center = new THREE.Vector3(...selection.center);
           const distance = Math.max(mobile ? .85 : .52, Math.max(...selection.size) * (mobile ? 2.4 : 1.7));
@@ -136,11 +166,24 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
           const position = center.clone().add(direction.normalize().multiplyScalar(distance));
           if (mobile) center.y -= distance * .17;
           orbit.minDistance = Math.min(profile.minDistance, distance * .8); orbit.smoothTime = .6;
-          await orbit.setLookAt(...position.toArray(), ...center.toArray(), !reduced());
+          await moveTo(position,center);
         } else {
           const destination = leoRoomFocusTargets[id];
-          orbit.minDistance = profile.minDistance;
-          await orbit.setLookAt(...destination.position, ...destination.target, !reduced());
+          const target=new THREE.Vector3(...destination.target), position=new THREE.Vector3(...destination.position);
+          const [width,height]=leoRoomInspectSize[id], tangent=Math.tan(THREE.MathUtils.degToRad(camera.fov)/2);
+          const fit=Math.max(height/(2*tangent*(mobile?.7:1)),width/(2*tangent*camera.aspect))*1.12;
+          const direction=position.clone().sub(target);
+          const designed=direction.length();
+          position.copy(target).add(direction.normalize().multiplyScalar(Math.max(designed,fit)));
+          const safe=constrainRoomCamera(position,chairX.current);
+          orbit.minDistance=profile.minDistance;orbit.smoothTime=.55;
+          await moveTo(new THREE.Vector3(safe.x,safe.y,safe.z),target);
+          if(generation===travelGeneration.current){
+            orbit.minAzimuthAngle=Math.max(profile.minAzimuthAngle,orbit.azimuthAngle-.62);
+            orbit.maxAzimuthAngle=Math.min(profile.maxAzimuthAngle,orbit.azimuthAngle+.62);
+            orbit.minPolarAngle=Math.max(profile.minPolarAngle,orbit.polarAngle-.3);
+            orbit.maxPolarAngle=Math.min(profile.maxPolarAngle,orbit.polarAngle+.3);
+          }
         }
       },
       restore: async snapshot => {
@@ -154,7 +197,7 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
         const { mobile, profile } = viewport.current;
         const overview = mobile ? leoRoomMobileOverviewCamera : leoRoomOverviewCamera;
         freeze(); applyLimits(); orbit.minDistance = profile.minDistance;
-        await orbit.setLookAt(...overview.position, ...overview.target, !reduced());
+        await moveTo(new THREE.Vector3(...overview.position),new THREE.Vector3(...overview.target));
       },
     };
     const unregister=registerCamera(driver);
@@ -177,10 +220,10 @@ export function RoomCameraControls({ interaction }: { interaction: RoomInteracti
     if (ref.current) ref.current.enabled = controlsEnabled;
     if (process.env.NODE_ENV === "development") gl.domElement.dataset.roomControls = String(controlsEnabled);
   }, [controlsEnabled, interaction.content, gl]);
-  return <CameraControls ref={ref} makeDefault enabled={controlsEnabled} smoothTime={mobile?.42:.48} draggingSmoothTime={mobile?.18:.15}
+  return <CameraControls ref={ref} makeDefault enabled={controlsEnabled} smoothTime={mobile?.32:.38} draggingSmoothTime={mobile?.18:.15}
     minDistance={profile.minDistance} maxDistance={profile.maxDistance} minPolarAngle={profile.minPolarAngle} maxPolarAngle={profile.maxPolarAngle}
     minAzimuthAngle={profile.minAzimuthAngle} maxAzimuthAngle={profile.maxAzimuthAngle}
-    azimuthRotateSpeed={mobile ? .32 : .4} polarRotateSpeed={mobile ? .26 : .34} dollySpeed={.38} truckSpeed={0} dollyToCursor={false} infinityDolly={false}
+    azimuthRotateSpeed={mobile ? .32 : .4} polarRotateSpeed={mobile ? .26 : .34} dollySpeed={.65} truckSpeed={mobile?.75:1.0} dollyToCursor={false} infinityDolly={false}
     onControlStart={() => { gestureTaken.current = false; }}
     onControl={() => { if (!gestureTaken.current) { gestureTaken.current = true; takeCameraControl(); } }}
     onControlEnd={() => { gestureTaken.current = false; }} />;

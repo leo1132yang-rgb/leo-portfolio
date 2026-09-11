@@ -79,7 +79,8 @@ function JourneyBoard({ onFocus, onChildhoodActivate }: WallDisplaysProps) {
   }, [posterTexture]);
 
   return (
-    <group position={ROOM_LAYOUT.journey.position} scale={ROOM_LAYOUT.journey.scale} rotation={[0, Math.PI / 2, 0]} {...handlers}>
+    <group name="childhood-inspect-display" position={ROOM_LAYOUT.journey.position} scale={ROOM_LAYOUT.journey.scale} rotation={[0, ROOM_LAYOUT.journey.yaw, 0]} {...handlers}>
+      {[-2.35,2.35].map(x=><mesh key={x} position={[x,-2.15,-.055]} castShadow><boxGeometry args={[.075,.7,.12]}/><meshStandardMaterial color="#282621" roughness={.65} metalness={.4}/></mesh>)}
       <mesh castShadow receiveShadow>
         <boxGeometry args={[5.55, 3.7, .17]} />
         <meshStandardMaterial color="#111514" roughness={.94} metalness={.02} />

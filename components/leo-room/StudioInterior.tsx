@@ -1,9 +1,11 @@
 "use client";
 
 import { LivingShelf } from "./LivingShelf";
+import { StitchCollectionCabinet } from './StitchCollectionCabinet';
 import { useFrame } from "@react-three/fiber";
 import { useRoomLife } from "./RoomLifeContext";
 import { ROOM_LIFE } from "@/data/leoRoomLife";
+import { ROOM_FURNITURE } from "@/data/leoRoomDimensions";
 import { BookshelfInteraction, LoungeSeat } from "./RoomLifeFurniture";
 import { PersonalBookshelf } from "./PersonalBookshelf";
 
@@ -106,7 +108,7 @@ function GlobeLamp({ at, floor = false }: { at: Vec; floor?: boolean }) {
 }
 
 function Shelf({ wood }: { wood: THREE.Texture }) {
-  return <group position={[5.35, 0, -3.45]}><BookshelfInteraction>
+  return <group position={ROOM_FURNITURE.bookshelf}><BookshelfInteraction>
     {[-.65, .65].map(x => <Block key={x} size={[.055, 3.25, .55]} at={[x, 1.625, 0]} />)}
     {[.16, .85, 1.55, 2.25, 3.05].map((y, index) => <group key={y}>
       <Block size={[1.38, .065, .57]} at={[0, y, 0]} wood={wood} />
@@ -150,10 +152,11 @@ export function StudioInterior() {
   return <group>
     <LivingShelf wood={surfaces.wood} />
     <Shelf wood={surfaces.wood} />
+    <StitchCollectionCabinet wood={surfaces.wood}/>
     <Lounge {...surfaces} />
-    <Plant at={[-5.6, 0, -3.12]} scale={1.3} />
-    <Plant at={[5.77, 0, 2.85]} scale={1.05} />
-    <Plant at={[-5.7, 0, 2.7]} scale={.95} />
-    <GlobeLamp at={[-5.1, 0, 2.65]} floor />
+    <Plant at={[-6.55, 0, -4.3]} scale={1.3} />
+    <Plant at={[7.05, 0, 3.9]} scale={1.05} />
+    <Plant at={[-7.05, 0, 4.5]} scale={.75} />
+    <GlobeLamp at={[-7.1, 0, 3.6]} floor />
   </group>;
 }

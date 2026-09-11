@@ -5,6 +5,20 @@ import * as THREE from 'three';
 import { useRoomLife } from './RoomLifeContext';
 
 const independent={independentPractical:true};
+function RiverStone({position,radius,index}:{position:[number,number,number];radius:number;index:number}){
+ const geometry=useMemo(()=>{
+  const g=new THREE.IcosahedronGeometry(radius,1),p=g.attributes.position,colors:number[]=[];
+  for(let i=0;i<p.count;i++){
+   const x=p.getX(i),y=p.getY(i),z=p.getZ(i),grain=1+.08*Math.sin(x*73+y*39+z*57+index);
+   p.setXYZ(i,x*grain,y*grain,z*grain);
+   const shade=.7+.2*(y/radius*.5+.5),moss=y>radius*.3;
+   colors.push(shade*(moss?.68:.78),shade*(moss?.78:.82),shade*(moss?.51:.75));
+  }
+  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.computeVertexNormals();return g;
+ },[radius,index]);
+ useEffect(()=>()=>geometry.dispose(),[geometry]);
+ return <mesh geometry={geometry} position={position} rotation={[.1,index*.8,.25]} scale={[1,.85,.65]}><meshStandardMaterial color="#75806c" vertexColors roughness={.92}/></mesh>;
+}
 function AquaticPlants(){
  const ref=useRef<THREE.InstancedMesh>(null);
  useEffect(()=>{const m=new THREE.Object3D();for(let i=0;i<72;i++){const clump=Math.floor(i/12),j=i%12;const x=clump<3?-.32+clump*.1:.16+(clump-3)*.09;const h=.055+(j%5)*.019;m.position.set(x+Math.sin(j*2.4)*.045,.075+h*.6,.09+Math.cos(j*2.4)*.045);m.rotation.set(.2*Math.cos(j),j*.7,Math.sin(j*2.4)*.5);m.scale.set(.015,h,.008);m.updateMatrix();ref.current!.setMatrixAt(i,m.matrix);ref.current!.setColorAt(i,new THREE.Color(['#426b44','#71944a','#355d47','#8a9c58'][i%4]));}ref.current!.instanceMatrix.needsUpdate=true;if(ref.current!.instanceColor)ref.current!.instanceColor.needsUpdate=true;(ref.current!.material as THREE.Material).needsUpdate=true;},[]);
@@ -31,13 +45,13 @@ function Fish({index}:{index:number}){
 }
 export function DeskAquascape({surfaceY}:{surfaceY:number}){
  const life=useRoomLife(),[hover,setHover]=useState(false),light=useRef<THREE.PointLight>(null),strip=useRef<THREE.MeshStandardMaterial>(null),water=useRef<THREE.Mesh>(null),last=useRef(-Infinity);
- const glass=<meshPhysicalMaterial color="#c9e2d9" transparent opacity={hover?.1:.055} roughness={.07} metalness={.08} clearcoat={.75} depthWrite={false} side={THREE.DoubleSide}/>;
+ const glass=<meshPhysicalMaterial color="#d2e4dc" transparent opacity={hover?.1:.055} roughness={.1} metalness={0} clearcoat={.65} depthWrite={false} side={THREE.DoubleSide}/>;
  useFrame(({clock},dt)=>{const target=life?.aquariumBright?.18:.055;if(light.current)light.current.intensity=THREE.MathUtils.damp(light.current.intensity,target,6,dt);if(strip.current)strip.current.emissiveIntensity=THREE.MathUtils.damp(strip.current.emissiveIntensity,life?.aquariumBright?1.5:.45,6,dt);if(water.current)water.current.position.y=.468+Math.sin(clock.elapsedTime*.7)*.001;});
- return <group name="desk-aquascape" position={[-1.36,surfaceY,-.59]} onPointerDown={e=>e.stopPropagation()} onPointerOver={e=>{e.stopPropagation();if(e.nativeEvent.pointerType!=='touch')setHover(true);}} onPointerOut={()=>setHover(false)} onClick={e=>{e.stopPropagation();if(e.delta>8||!life?.objectsEnabled||performance.now()-last.current<400)return;last.current=performance.now();life.toggleAquarium();}}>
+ return <group name="desk-aquascape" position={[-1.36,surfaceY,-.515]} onPointerDown={e=>e.stopPropagation()} onPointerOver={e=>{e.stopPropagation();if(e.nativeEvent.pointerType!=='touch')setHover(true);}} onPointerOut={()=>setHover(false)} onClick={e=>{e.stopPropagation();if(e.delta>8||!life?.objectsEnabled||performance.now()-last.current<400)return;last.current=performance.now();life.toggleAquarium();}}>
  <mesh position={[0,.014,0]}><boxGeometry args={[.94,.028,.45]}/><meshStandardMaterial color="#252c2a" metalness={.3} roughness={.65}/></mesh>
  <mesh position={[0,.046,0]}><boxGeometry args={[.9,.045,.41]}/><meshStandardMaterial color="#665741" roughness={1}/></mesh>
  <mesh position={[.04,.071,-.07]} rotation={[-Math.PI/2,0,.15]} scale={[1.8,.65,1]}><circleGeometry args={[.17,24]}/><meshStandardMaterial color="#c6ba95" roughness={1}/></mesh>
- {[[-.26,.13,.04,.11],[-.11,.16,.09,.14],[.26,.115,.04,.085],[.09,.09,.12,.055]].map(([x,y,z,r],i)=><mesh key={i} position={[x,y,z]} rotation={[.1,i*.8,.25]} scale={[1,.85,.65]}><dodecahedronGeometry args={[r,0]}/><meshStandardMaterial color={i%2?'#5d6862':'#7d8170'} roughness={.95}/></mesh>)}
+ {[[-.26,.13,.04,.11],[-.11,.16,.09,.14],[.26,.115,.04,.085],[.09,.09,.12,.055]].map(([x,y,z,r],i)=><RiverStone key={i} position={[x,y,z]} radius={r} index={i}/>)}
  <Driftwood/><AquaticPlants/>{[0,1,2].map(i=><Fish key={i} index={i}/>)}
  <mesh ref={water} position={[0,.468,0]} rotation={[-Math.PI/2,0,0]} renderOrder={2}><planeGeometry args={[.904,.414]}/><meshPhysicalMaterial color="#adc9bb" transparent opacity={.12} roughness={.18} metalness={.2} depthWrite={false} side={THREE.DoubleSide}/></mesh>
  {[-1,1].map(side=><group key={side}><mesh position={[0,.27,side*.218]} renderOrder={3}><boxGeometry args={[.928,.49,.007]}/>{glass}</mesh><mesh position={[side*.461,.27,0]} renderOrder={3}><boxGeometry args={[.007,.49,.432]}/>{glass}</mesh><mesh position={[side*.461,.27,.219]}><boxGeometry args={[.006,.49,.007]}/><meshBasicMaterial color="#c5d5c4" transparent opacity={.38}/></mesh></group>)}

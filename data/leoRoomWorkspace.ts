@@ -3,9 +3,9 @@ import { ROOM, ROOM_LAYOUT } from "@/data/leoRoomDimensions";
 // User-selected display scale: double the calibrated desktop props together.
 export const DESK_PROP_SCALE = 2;
 
-const deskWidth = Math.min(ROOM.width * .37, ROOM_LAYOUT.rug.radius * 2.02);
-const deskDepth = ROOM.depth * .19;
-const deskHeight = ROOM.height * .21;
+const deskWidth = 4.81;
+const deskDepth = 1.52;
+const deskHeight = .798;
 
 export const CENTRAL_WORKSPACE = {
   position: ROOM_LAYOUT.rug.position,
@@ -13,15 +13,15 @@ export const CENTRAL_WORKSPACE = {
     width: deskWidth,
     depth: deskDepth,
     height: deskHeight,
-    topThickness: ROOM.height * .035,
+    topThickness: .095,
     wingWidth: deskWidth * .24,
     wingDepth: deskDepth * .72,
   },
   monitor: {
-    width: .598,
-    height: .598 * 9 / 16,
-    depth: .055,
-    centerY: .14 + deskHeight + ROOM.height * .035 / 2 + .10 + .598 * 9 / 32,
+    width: .68,
+    height: .68 * 9 / 16,
+    depth: .026,
+    centerY: .14 + deskHeight + .095 / 2 + .10 + .68 * 9 / 32,
     z: -.08,
   },
   chair: {
@@ -30,7 +30,7 @@ export const CENTRAL_WORKSPACE = {
     width: deskWidth * .22,
   },
   deskCamera: {
-    position: [ROOM.width * .28, ROOM.height * 1.13, ROOM.depth * .77] as [number, number, number],
+    position: [2.9, 2.75, 4.45] as [number, number, number],
     target: [0, deskHeight + .26, ROOM_LAYOUT.rug.position[2] + .28] as [number, number, number],
     azimuth: [.2, 1.05] as [number, number],
   },
@@ -47,8 +47,8 @@ export const DESK_OBJECT_DIMENSIONS = {
   runtianBottle: {
     // Approximation of the supplied small green-cap / blue-white-label bottle.
     // The reference appears to read 380 ml; this is not a measured product CAD.
-    height: .205,
-    diameter: .057,
+    height: .215,
+    diameter: .054,
   },
   fujiXT5: {
     bodyWidth: .13,

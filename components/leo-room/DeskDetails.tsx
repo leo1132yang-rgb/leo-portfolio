@@ -76,29 +76,36 @@ export function DetailedFujiCamera() {
   </group>;
 }
 
-const keyRows = ["ESC  F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12", "` 1 2 3 4 5 6 7 8 9 0 - =", "TAB Q W E R T Y U I O P [ ]", "CAP A S D F G H J K L ; ENTER", "SHIFT Z X C V B N M , . / SHIFT", "CTRL ALT                 ALT FN CTRL"];
+const keyRows = ["ESC F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 DEL", "` 1 2 3 4 5 6 7 8 9 0 - = BACK:2", "TAB:1.5 Q W E R T Y U I O P [ ] \\:1.5", "CAP:1.75 A S D F G H J K L ; ' ENTER:2.25", "SHIFT:2.25 Z X C V B N M , . / SHIFT:1.75 UP", "CTRL:1.25 WIN:1.25 ALT:1.25 SPACE:6.25 ALT FN LEFT DOWN RIGHT"];
+const keyboardKeys=keyRows.flatMap((row,r)=>{
+  const entries=row.split(' ').map(token=>{const [label,width]=token.split(':');return {label,w:Number(width)||1};});
+  const total=entries.reduce((sum,key)=>sum+key.w,0),unit=.92/total;let offset=-.46;
+  return entries.map(key=>{const x=offset+key.w*unit/2;offset+=key.w*unit;return {...key,x,z:-.40+r*.158,width:key.w*unit-.01,row:r};});
+});
 const printKeys = (ctx: CanvasRenderingContext2D) => {
-  ctx.fillStyle="#c8c7bd";ctx.font="12px Arial";
-  keyRows.forEach((row,r)=>row.split(" ").forEach((key,c)=>ctx.fillText(key,12+c*31,25+r*37)));
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='9px Arial';
+  keyboardKeys.forEach(key=>{ctx.fillStyle=key.label==='ESC'||key.row===0?'#e8e2d3':'#3b4039';if(key.label!=='SPACE')ctx.fillText(key.label,(key.x+.5)*512,(key.z+.5)*256);});
 };
 export function Keycaps() {
   const ref=useRef<THREE.InstancedMesh>(null);
   const texture=usePrintedTexture(printKeys);
   const { keyboard:k }=DESK_OBJECT_DIMENSIONS;
-  const keys=useMemo(()=>{
-    const result: {x:number;z:number;w:number}[]=[];
-    for(let r=0;r<6;r++)for(let c=0;c<20;c++){
-      if(c===14 || (r===5 && c>3 && c<9))continue;
-      const space = r===5 && c===3;
-      result.push({x:-k.width*.465+(space?5.5:c)*k.width/21,z:-k.depth*.405+r*k.depth/6.8,w:space?k.width*5.65/21:k.width/23});
-    }return result;
-  },[k]);
+  const geometry=useMemo(()=>{
+    // Bevel rings preserve a soft keycap silhouette without subdividing flat faces.
+    const outline=[[-.38,-.5],[.38,-.5],[.5,-.38],[.5,.38],[.38,.5],[-.38,.5],[-.5,.38],[-.5,-.38]];
+    const p:number[]=[],index:number[]=[];
+    [[-.5,1],[.27,1],[.5,.87]].forEach(([y,s])=>outline.forEach(([x,z])=>p.push(x*s,y,z*s)));
+    for(let ring=0;ring<2;ring++)for(let i=0;i<8;i++){const a=ring*8+i,b=ring*8+(i+1)%8;index.push(a,a+8,b,b,a+8,b+8);}
+    p.push(0,-.5,0,0,.5,0);for(let i=0;i<8;i++){index.push(24,i,(i+1)%8,25,16+(i+1)%8,16+i);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));g.setIndex(index);g.computeVertexNormals();return g;
+  },[]);
+  useEffect(()=>()=>geometry.dispose(),[geometry]);
   useLayoutEffect(()=>{
-    const dummy=new THREE.Object3D();keys.forEach((key,i)=>{dummy.position.set(key.x,k.height*.58,key.z);dummy.scale.set(key.w,.006,k.depth/8.5);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix)});ref.current!.instanceMatrix.needsUpdate=true;
-  },[keys,k]);
+    const dummy=new THREE.Object3D();keyboardKeys.forEach((key,i)=>{dummy.position.set(key.x*k.width,k.height*.58,key.z*k.depth);dummy.scale.set(key.width*k.width,.006,k.depth*.135);dummy.updateMatrix();ref.current!.setMatrixAt(i,dummy.matrix);ref.current!.setColorAt(i,new THREE.Color(key.label==='ESC'?'#987454':key.row===0?'#555e52':key.label.length>1?'#a6aaa0':'#d2d0c2'));});ref.current!.instanceMatrix.needsUpdate=true;if(ref.current!.instanceColor)ref.current!.instanceColor.needsUpdate=true;
+  },[k]);
   return <>
-    <instancedMesh ref={ref} args={[undefined,undefined,keys.length]}><boxGeometry args={[1,1,1]} /><meshStandardMaterial color="#353a3f" roughness={.58} /></instancedMesh>
-    <mesh position={[-k.width*.09,k.height*.58+.0031,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[k.width*.77,k.depth*.94]} /><meshBasicMaterial map={texture} transparent depthWrite={false} opacity={.7} /></mesh>
+    <instancedMesh ref={ref} args={[geometry,undefined,keyboardKeys.length]} castShadow><meshStandardMaterial roughness={.72} /></instancedMesh>
+    <mesh position={[0,k.height*.58+.0031,0]} rotation={[-Math.PI/2,0,0]}><planeGeometry args={[k.width,k.depth]} /><meshBasicMaterial map={texture} transparent depthWrite={false} opacity={.9} /></mesh>
   </>;
 }
 
@@ -123,8 +130,7 @@ export function DeskCables({surfaceY}:{surfaceY:number}) {
   const {size}=useThree();
   if(size.width<768)return null;
   return <group>
-    <Cable points={[[0,monitor.centerY-.1,monitor.z-.07],[.025,surfaceY+.02,-.17],[.09,surfaceY+.006,-.195],[.15,surfaceY-.18,-.225]]} />
-    <Cable radius={.003} points={[[-.49,surfaceY+.012,-.164],[-.54,surfaceY+.003,-.175],[-.63,surfaceY+.003,-.195],[-.66,surfaceY-.15,-.225]]} />
+    <Cable radius={.0035} points={[[0,monitor.centerY-.1,monitor.z-.045],[.032,surfaceY+.055,-.11],[.04,surfaceY+.008,-.125],[0,surfaceY+.003,(-desk.depth*.4+.35)/2],[0,surfaceY-.12,(-desk.depth*.4+.35)/2]]} />
   </group>;
 }
 

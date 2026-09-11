@@ -34,3 +34,10 @@
 :global(body):has(.mobileRoot[data-room-mobile="true"]) :global(.sound-toggle){display:block;width:130px;max-width:130px;min-height:44px}
 :global(body):has(.mobileRoot[data-room-mobile="true"]) :global(.sound-toggle__button){width:130px;min-width:0;height:44px;padding:0 12px;justify-content:center;font-size:11px;backdrop-filter:none;touch-action:manipulation}
 :global(body):has(.mobileRoot[data-room-mobile="true"]) :global(.sound-toggle__panel){display:none}
+
+@media(min-width:768px){.mobileMenu{left:auto;right:30px;width:330px;top:76px;max-height:60vh}.heading>span{max-width:330px}}
+
+@media(min-width:768px){.focus{bottom:74px;padding:6px;gap:8px;background:#10171bc9}.focus .button{min-height:36px}.focus p small{font-size:9px}}
+
+/* Keep inspect controls off the subject, especially the lowest bookshelf row. */
+@media(min-width:768px){.focus{left:30px;top:86px;bottom:auto;transform:none;max-width:235px;align-items:flex-start;flex-direction:column;padding:0;border:0;background:none;text-shadow:0 1px 8px #000}.focus p{margin:0}.focus>.button:last-child{display:none}}
