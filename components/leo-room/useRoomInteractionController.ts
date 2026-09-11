@@ -28,7 +28,7 @@ export type RoomCameraDriver = {
   stand: () => Promise<void>;
 };
 export type LivingShelfItem = "lamp" | "vinyl" | "drawer" | "book" | "plant";
-type Model = { interactionState: RoomInteractionState; activeHotspot: LeoRoomFocusId | null; content: RoomContent | null };
+type Model = { interactionState: RoomInteractionState; activeHotspot: LeoRoomFocusId | null; content: RoomContent | null; photoWallReady?: boolean };
 const FREE: Model = { interactionState: "FREE_EXPLORE", activeHotspot: null, content: null };
 
 export function useRoomInteractionController() {
@@ -125,7 +125,8 @@ export function useRoomInteractionController() {
     ++generation.current;
     previousCameraSnapshot.current = null;
     driver.current?.unlock();
-    publish(FREE);
+    // Photo activation survives dismissal, independently of the released focus lock.
+    publish({ ...FREE, photoWallReady: current.current.content?.type === "photo" || current.current.photoWallReady });
   }, [publish, seatActive, standUp, endChairDrag, updateLife]);
 
   const resetView = useCallback(() => {
@@ -191,6 +192,8 @@ export function useRoomInteractionController() {
 
   return { ...model, ...life, ...shelf, registerTransientDismiss, registerVinylAction, interactLivingShelf, selectLivingShelfItem, seatActive: seatActive(), contentOpen: !!model.content, controlsEnabled: !model.content && !seatActive() && !life.chairDragging, objectsEnabled: !model.content && !seatActive() && !life.chairDragging,
     toggleAquarium, toggleLighting, beginChairDrag, endChairDrag, moveChair, showMicroHint, sitDown, standUp, focusTarget: model.activeHotspot, previousCameraSnapshot,
+    photoLightboxEnabled: !model.content && ((model.activeHotspot === "gallery" && model.interactionState === "FOCUSED") || (model.interactionState === "FREE_EXPLORE" && !!model.photoWallReady)),
+    closePhotoLightbox: returnToExplore,
     registerCamera, focusHotspot, openContent, returnToExplore, resetView, takeCameraControl, selectPhoto, cancelBackground };
 }
 export type RoomInteractionController = ReturnType<typeof useRoomInteractionController>;

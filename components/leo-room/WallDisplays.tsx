@@ -109,6 +109,10 @@ function PhotoWall({ onFocus, onPhotoSelect, photoLightboxEnabled }: WallDisplay
   const [hoveredPhotoId, setHoveredPhotoId] = useState<string | null>(null);
   useEffect(() => { if (!hoveredPhotoId) return; const previous=gl.domElement.style.cursor;gl.domElement.style.cursor="pointer";return()=>{gl.domElement.style.cursor=previous;}; },[gl,hoveredPhotoId]);
   const photoPointerRef = useRef<{ id: string; x: number; y: number; dragged: boolean } | null>(null);
+  useEffect(() => {
+    photoPointerRef.current = null;
+    setHoveredPhotoId(null);
+  }, [photoLightboxEnabled]);
 
   useEffect(() => {
     textures.forEach((texture) => {

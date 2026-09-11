@@ -63,6 +63,21 @@ async function run(width){
   const before=pose();await invoke(round%2?esc:()=>interaction.returnToExplore());free();await frame();assert(equalPose(before,pose()),content.type+' close moved camera');
   await invoke(()=>orbit.rotate(-.08,0,false));await frame();assert(!equalPose(before,pose()),content.type+' cannot rotate after close');
  }
+ // Exercise the same activation gate as the photo meshes, without refocusing.
+ await invoke(()=>interaction.resetView());await frame();
+ assert.equal(interaction.photoLightboxEnabled,false,'overview must approach the wall first');
+ await invoke(()=>interaction.focusHotspot('gallery'));await frame();
+ for(let i=0;i<5;i++){
+  assert.equal(interaction.photoLightboxEnabled,true,'next photo requires another focus at '+i);
+  await invoke(()=>interaction.openContent({type:'photo',id:'photo-'+i}));
+  assert.equal(interaction.photoLightboxEnabled,false,'photo gate left enabled behind modal');
+  const before=pose();
+  await invoke(i%2?esc:()=>interaction.closePhotoLightbox());await frame();free();
+  assert.equal(interaction.objectsEnabled,true);assert.equal(interaction.controlsEnabled,true);
+  assert(equalPose(before,pose()),'photo close reset the camera');
+ }
+ await invoke(()=>interaction.focusHotspot('desk'));await frame();
+ assert.equal(interaction.photoLightboxEnabled,false,'photo readiness leaked into another focus');
  // Close a desk transition before it settles: no jump to its queued destination.
  await invoke(()=>interaction.openContent(modules[2]));await frame(8);const mid=pose();await invoke(()=>interaction.returnToExplore());await frame();free();assert(equalPose(mid,pose()),'mid-desk close snapped');
  // Late focus completions must not reopen a module or replace its state.

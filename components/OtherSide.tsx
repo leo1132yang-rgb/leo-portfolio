@@ -103,7 +103,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
             onWallFocus={focusWall} onDeskFocus={() => focusWall("desk")}
             onChildhoodActivate={() => focusWall("journey")}
             onPhotoSelect={photo => { if (!contentOpen) openContent({ type: "photo", id: photo.id }); }}
-            photoLightboxEnabled={activeHotspot === "gallery" && interactionState === "FOCUSED"}
+            photoLightboxEnabled={interaction.photoLightboxEnabled}
             onDeskItemSelect={selectDeskItem} />
         </RoomTouchSurface>
         {mobileActions && !contentOpen && !interaction.seatActive && <aside className={styles.mobileMenu} aria-label={cn?'探索房间':'Explore room'}>{[
@@ -138,7 +138,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
       {content?.type === "desk" && <DeskDetailOverlay id={content.selection.id} onClose={returnToExplore} />}
       {readingOpen && <ChildhoodGame onClose={returnToExplore} />}
       {content?.type === "world" && <RoomModuleOverlay label={travelGlobeName[language]} returnLabel={cn ? "返回我的世界" : "Back to Leo’s World"} onClose={returnToExplore}><MyWorldPage embedded /></RoomModuleOverlay>}
-      {content?.type === "photo" && <PhotoLightbox photos={photoWallImages} selectedId={content.id} onSelect={interaction.selectPhoto} onClose={returnToExplore} />}
+      {content?.type === "photo" && <PhotoLightbox photos={photoWallImages} selectedId={content.id} onSelect={interaction.selectPhoto} onClose={interaction.closePhotoLightbox} />}
     </main>
   );
 }
