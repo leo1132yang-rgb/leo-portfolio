@@ -29,3 +29,6 @@
   .actions { margin-top: 24px; gap: 10px 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .intro, .enter, .enter > span { transition: none; } }
+.directLoading { position:fixed; inset:0; z-index:100; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:25px; padding:25px; background:#090d12; color:#d7c5a4; font-size:13px; }
+.directLoading>a { position:absolute; top:calc(24px + env(safe-area-inset-top)); left:24px; }
+.directLoading button { padding:12px 18px; border:1px solid #bfa88370; border-radius:5px; }

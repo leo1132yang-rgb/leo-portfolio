@@ -4,7 +4,9 @@ import dynamic from "next/dynamic";
 import { Component, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { useLanguage } from "@/components/LanguageProvider";
-import { worldIntroCopy, worldName } from "@/data/worldCopy";
+import { worldIntroCopy } from "@/data/worldCopy";
+import Link from "next/link";
+import { WorldInvitation } from "./WorldInvitation";
 import RippleDistortion from "./RippleDistortion";
 import styles from "./OtherSideEntry.module.css";
 // Keep return controls styled while the room's JS is prewarmed independently.
@@ -22,12 +24,12 @@ class WarmupBoundary extends Component<{ children: ReactNode; onError: () => voi
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-export function OtherSideEntry() {
+export function OtherSideEntry({ direct = false, exitHref = "/" }: { direct?: boolean; exitHref?: string } = {}) {
   const { language } = useLanguage();
   const copy = worldIntroCopy[language];
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(!direct);
   const [leaving, setLeaving] = useState(false);
-  const [requested, setRequested] = useState(false);
+  const [requested, setRequested] = useState(direct);
   const [chunksReady, setChunksReady] = useState(false);
   const [coreReady, setCoreReady] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
@@ -81,8 +83,9 @@ export function OtherSideEntry() {
   const prompt = failed ? copy.retry : waiting ? copy.waiting : copy.enter;
 
   return <div className={styles.gate}>
-    {showIntro && assets && <WarmupBoundary key={attempt} onError={markFailed}><Suspense fallback={null}><assets.RoomCoreAssetsReady onReady={markCoreReady} /></Suspense></WarmupBoundary>}
-    {mountRoom && <OtherSide onRoomReady={markSceneReady} />}
+    {(showIntro || direct) && assets && !coreReady && <WarmupBoundary key={attempt} onError={markFailed}><Suspense fallback={null}><assets.RoomCoreAssetsReady onReady={markCoreReady} /></Suspense></WarmupBoundary>}
+    {mountRoom && <OtherSide onRoomReady={markSceneReady} exitHref={exitHref} />}
+    {direct && !sceneReady && <div className={styles.directLoading}><Link href={exitHref}>← {language === "cn" ? "返回我的世界封面" : "Back to the invitation"}</Link><p role="status">{failed ? copy.retry : copy.waiting}</p>{failed && <button type="button" onClick={enterRoom}>{copy.retry}</button>}</div>}
     {showIntro && <>
     {!mountRoom && <SiteNavbar variant="hero" />}
     <main className={`${styles.intro} ${leaving ? styles.leaving : ""}`}>
@@ -93,17 +96,7 @@ export function OtherSideEntry() {
         tintAmount={0.05} quality="low" trigger="hover"
       >
         <div className={styles.invitation}>
-          <section className={styles.content} aria-labelledby="world-welcome-title">
-            <p className={styles.eyebrow}>{worldName.en}</p>
-            <h1 id="world-welcome-title" className={styles.title}>{copy.title}</h1>
-            <div className={styles.copy}>{copy.paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
-            <div className={styles.actions}>
-              <button type="button" className={styles.enter} onClick={enterRoom} disabled={waiting || leaving} aria-busy={waiting} aria-label={prompt}>
-                <span aria-live="polite">{prompt}</span>{!waiting && <span aria-hidden="true"> →</span>}
-              </button>
-              <a className={styles.feedback} href="mailto:leoyang1132@outlook.com">{copy.feedback} ↗</a>
-            </div>
-          </section>
+          <WorldInvitation onEnter={enterRoom} prompt={prompt} waiting={waiting || leaving} />
         </div>
       </RippleDistortion>
     </main>

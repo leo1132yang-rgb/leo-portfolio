@@ -4,6 +4,7 @@ import { CustomCursor } from "@/components/CustomCursor";
 import { LanguageProvider } from "@/components/LanguageProvider";
 import { GlobalAudioProvider } from "@/components/audio/GlobalAudioProvider";
 import { SoundToggle } from "@/components/audio/SoundToggle";
+import { MobileJourneyNavigation } from "@/components/mobile/MobileJourneyNavigation";
 
 export const metadata: Metadata = {
   title: "李阳 Leo｜个人品牌官网 · Brand Operation System",
@@ -22,6 +23,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <GlobalAudioProvider>
           <LanguageProvider>
+            <MobileJourneyNavigation />
             {children}
             <SoundToggle />
           </LanguageProvider>

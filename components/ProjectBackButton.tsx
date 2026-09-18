@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
+import { projectReturnHref } from '@/lib/mobileJourney';
 
 function fallbackForPath(pathname: string) {
   if (pathname.startsWith("/projects/poster-design/")) return "/projects/poster-design";
@@ -20,6 +21,7 @@ export function ProjectBackButton({ fallbackHref }: { fallbackHref?: string }) {
 
   const goBack = () => {
     const fallback = fallbackHref ?? fallbackForPath(pathname);
+    if (projectReturnHref(fallback) !== fallback) { router.push('/#projects', { scroll: false }); return; }
     const referrer = document.referrer;
 
     if (referrer) {

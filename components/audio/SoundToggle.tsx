@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { audioTracks } from "@/components/audio/GlobalAudioProvider";
 import { useLanguage } from "@/components/LanguageProvider";
 import { useGlobalAudio } from "@/hooks/useGlobalAudio";
+import { useMobileViewport } from '@/hooks/useMobileViewport';
 
 export function SoundToggle() {
+  const mobile = useMobileViewport();
+  const pathname = usePathname();
   const { language } = useLanguage();
   const { currentTrack, isEnabled, isPlaying, toggleAudio, volume, setVolume } = useGlobalAudio();
   const [open, setOpen] = useState(false);
@@ -13,6 +17,9 @@ export function SoundToggle() {
   const buttonLabel = isEnabled ? (cn ? "开启声音" : "SOUND ON") : (cn ? "关闭声音" : "SOUND OFF");
   const statusLabel = isEnabled ? (cn ? "声音已开启" : "Sound On") : (cn ? "声音已关闭" : "Sound Off");
   const volumeLabel = cn ? "音量" : "Volume";
+
+  // Keep the mobile journey unobstructed while its audio is paused.
+  if (mobile && pathname === '/') return null;
 
   return (
     <aside

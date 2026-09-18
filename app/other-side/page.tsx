@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: "欢迎来到我的世界。慢慢探索 Leo 的房间、童年记忆、旅行地球与开放世界，看看那些我最核心、也最喜欢的内容。",
 };
 
-export default function OtherSidePage() {
-  return <OtherSideEntry />;
+export default async function OtherSidePage({ searchParams }: { searchParams: Promise<{ enter?: string; from?: string }> }) {
+  const query = await searchParams;
+  const direct = query.enter === '1' && query.from === 'mobile-home';
+  return <OtherSideEntry direct={direct} exitHref={direct ? '/#world' : '/'} />;
 }

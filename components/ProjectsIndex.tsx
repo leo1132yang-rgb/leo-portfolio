@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { InnerPage } from "@/components/layout/InnerPage";
+import { readJourney, rememberJourney, rememberProjectFilter } from '@/lib/mobileJourney';
 import "./projects/ProjectCardGlare.css";
 
 type Copy = { cn: string; en: string };
@@ -93,16 +94,16 @@ const projects: ProjectCategory[] = [
   },
 ];
 
-function ProjectCard({ project, cn }: { project: ProjectCategory; cn: boolean }) {
+function ProjectCard({ project, cn, embedded = false }: { project: ProjectCategory; cn: boolean; embedded?: boolean }) {
   return (
     <div className="project-tilt-card projects-gallery__tilt"><div className="project-tilt-card__inner">
-      <Link href={project.href} className="projects-gallery__card" aria-label={cn ? project.title.cn : project.title.en}>
+      <Link href={project.href} prefetch={embedded ? false : undefined} className="projects-gallery__card" aria-label={cn ? project.title.cn : project.title.en}>
         <div className="projects-gallery__card-surface" aria-hidden="true" />
         <div className="projects-gallery__media">
           <img
             src={project.image}
             alt=""
-            loading="eager"
+            loading={embedded ? 'lazy' : 'eager'}
             decoding="async"
             style={{ objectPosition: project.imagePosition ?? "center" }}
           />
@@ -122,23 +123,30 @@ function ProjectCard({ project, cn }: { project: ProjectCategory; cn: boolean })
   );
 }
 
-export function ProjectsIndex() {
+export function ProjectsIndex({ embedded = false }: { embedded?: boolean } = {}) {
   const { language } = useLanguage();
   const cn = language === "cn";
-  const [filter, setFilter] = useState<FilterId>("all");
+  const [filter, setFilter] = useState<FilterId>(() => {
+    const saved = embedded ? readJourney()?.filter : null;
+    return filters.some(item => item.id === saved) ? saved as FilterId : 'all';
+  });
+  const Title = embedded ? 'h2' : 'h1';
   const visibleProjects = useMemo(
     () => filter === "all" ? projects : projects.filter((project) => project.filter === filter),
     [filter],
   );
 
-  return (
-    <InnerPage>
-      <section className="projects-gallery">
+  const content = (
+      <section className="projects-gallery" onClickCapture={event => {
+        if (!embedded || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        const link = (event.target as Element).closest('a');
+        if (link) rememberJourney('projects', filter, link.getAttribute('href') || undefined);
+      }}>
         <header className="projects-gallery__hero">
           <img className="projects-gallery__hero-image" src="/projects/ui/projects_hero_background.png" alt="" loading="eager" decoding="async" />
           <div className="projects-gallery__hero-glow" aria-hidden="true" />
           <div className="projects-gallery__hero-copy">
-            <h1>{cn ? "项目作品" : "Projects"}</h1>
+            <Title>{cn ? "项目作品" : "Projects"}</Title>
             <p className="projects-gallery__eyebrow">PROJECTS</p>
             <i aria-hidden="true" />
             <p className="projects-gallery__intro">
@@ -155,7 +163,7 @@ export function ProjectsIndex() {
               key={item.id}
               className={filter === item.id ? "is-active" : ""}
               aria-pressed={filter === item.id}
-              onClick={() => setFilter(item.id)}
+              onClick={() => { setFilter(item.id); if (embedded) rememberProjectFilter(item.id); }}
             >
               {cn ? item.label.cn : item.label.en}
             </button>
@@ -163,9 +171,9 @@ export function ProjectsIndex() {
         </nav>
 
         <div className="projects-gallery__grid" key={filter}>
-          {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} cn={cn} />)}
+          {visibleProjects.map((project) => <ProjectCard key={project.id} project={project} cn={cn} embedded={embedded} />)}
         </div>
       </section>
-    </InnerPage>
   );
+  return embedded ? content : <InnerPage>{content}</InnerPage>;
 }

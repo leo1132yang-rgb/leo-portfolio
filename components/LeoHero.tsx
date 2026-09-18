@@ -22,7 +22,7 @@ const tools = [
 const HERO_DESKTOP_VIDEO_SRC = "https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260622_204221_5339e40b-e73d-4ab0-9c65-79c18c66fd50.mp4";
 const HERO_MOBILE_VIDEO_SRC = "/videos/hero-mobile.mp4";
 
-export function LeoHero() {
+export function LeoHero({ embedded = false }: { embedded?: boolean } = {}) {
   const { language } = useLanguage(); const cn = language === "cn";
   const videoRef = useRef<HTMLVideoElement>(null);
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
@@ -52,16 +52,17 @@ export function LeoHero() {
     let disposed = false;
     let cleanupRetry = () => undefined;
     const video = videoRef.current;
+    const visible = () => { const box = video.getBoundingClientRect(); return !document.hidden && (!embedded || (box.bottom > 0 && box.top < innerHeight)); };
     const retry = () => {
       cleanupRetry();
-      void video.play().catch(() => undefined);
+      if (visible()) void video.play().catch(() => undefined);
     };
     cleanupRetry = () => {
       window.removeEventListener("pointerdown", retry);
       window.removeEventListener("keydown", retry);
     };
-    void video.play().catch(() => {
-      if (disposed) return;
+    if (visible()) void video.play().catch(() => {
+      if (disposed || !visible()) return;
       window.addEventListener("pointerdown", retry, { once: true });
       window.addEventListener("keydown", retry, { once: true });
     });
@@ -69,12 +70,23 @@ export function LeoHero() {
       disposed = true;
       cleanupRetry();
     };
-  }, [shouldLoadVideo, videoSrc]);
+  }, [shouldLoadVideo, videoSrc, embedded]);
 
-  return <main id="home" className="leo-hero relative h-screen w-full overflow-hidden bg-black font-geist">
-    {shouldLoadVideo && <video ref={videoRef} autoPlay muted loop playsInline preload={isMobileHero ? "auto" : "metadata"} onCanPlay={() => setVideoReady(true)} onPlaying={() => setVideoReady(true)} onError={() => setVideoFailed(true)} className={`leo-hero__video pointer-events-none absolute h-full w-full object-cover object-[70%_center]${videoReady && !videoFailed ? " is-ready" : ""}`} src={videoSrc} />}
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!embedded || !video) return;
+    let intersecting = false;
+    const sync = () => { if (intersecting && !document.hidden) void video.play().catch(() => undefined); else video.pause(); };
+    const observer = new IntersectionObserver(([entry]) => { intersecting = entry.isIntersecting; sync(); }, { threshold: .02 });
+    observer.observe(video);
+    document.addEventListener('visibilitychange', sync);
+    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync); };
+  }, [embedded, shouldLoadVideo]);
+  const Root = embedded ? 'section' : 'main';
+  return <Root id="home" data-mobile-chapter={embedded ? 'home' : undefined} className="leo-hero relative h-screen w-full overflow-hidden bg-black font-geist">
+    {shouldLoadVideo && <video ref={videoRef} autoPlay={!embedded} muted loop playsInline preload={isMobileHero ? "auto" : "metadata"} onCanPlay={() => setVideoReady(true)} onPlaying={() => setVideoReady(true)} onError={() => setVideoFailed(true)} className={`leo-hero__video pointer-events-none absolute h-full w-full object-cover object-[70%_center]${videoReady && !videoFailed ? " is-ready" : ""}`} src={videoSrc} />}
     <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/[.16] via-black/[.08] to-black/[.38]" aria-hidden="true" /><div className="leo-hero__readability" aria-hidden="true" />
-    <SiteNavbar variant="hero" />
+    {!embedded && <SiteNavbar variant="hero" />}
     <section className="leo-hero__content" aria-label={cn ? "李阳个人介绍" : "Leo personal introduction"}>
       <div className="leo-hero__identity">
         <div className="leo-hero__portrait leo-hero__portrait--illustration animate-[portraitReveal_0.8s_cubic-bezier(0.16,1,0.3,1)_0.3s_both]"><img src="/images/leo-portal-portrait.png" alt={cn ? "李阳 Leo 的深海舷窗头像" : "Leo Li ocean porthole portrait"} /></div>
@@ -86,7 +98,8 @@ export function LeoHero() {
         </div>
       </div>
       <div className="leo-hero__copy"><h2 className="animate-[fadeSlideUp_0.8s_ease_0.68s_both]">{cn ? "我从摄影、内容与活动现场出发，逐步走向品牌运营与系统搭建，擅长把创意、内容与执行整合成可持续运转的工作方式。" : "I began with photography, content and live events, and moved toward brand operations and systems—integrating ideas, content and delivery into ways of working that last."}</h2><p className="leo-hero__bio leo-hero__bio--support animate-[fadeSlideUp_0.8s_ease_0.8s_both]">{cn ? "擅长品牌内容、活动执行、视觉设计、系统搭建与 AI 协作。" : "Working across brand content, event execution, visual design, systems and AI collaboration."}</p>
-        <div className="leo-hero__tools animate-[fadeSlideUp_0.8s_ease_0.92s_both]"><p>{cn ? "常用工具" : "TOOLS I USE"}</p><div>{tools.map((tool) => <span key={tool.name}><img src={tool.icon} alt="" /><b>{tool.name}</b></span>)}</div></div><div className="leo-hero__actions animate-[fadeSlideUp_0.8s_ease_1s_both]"><Link href="/projects" className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-transform duration-300 hover:scale-[1.035] sm:px-6 sm:py-3">{cn ? "查看项目作品" : "Explore Work"}<Icon name="arrow" size={16} /></Link><a href="mailto:leoyang1132@outlook.com">{cn ? "联系我" : "Contact"} <span>→</span></a></div></div>
+        <div className="leo-hero__tools animate-[fadeSlideUp_0.8s_ease_0.92s_both]"><p>{cn ? "常用工具" : "TOOLS I USE"}</p><div>{tools.map((tool) => <span key={tool.name}><img src={tool.icon} alt="" /><b>{tool.name}</b></span>)}</div></div><div className="leo-hero__actions animate-[fadeSlideUp_0.8s_ease_1s_both]"><Link href={embedded ? "#projects" : "/projects"} className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-black transition-transform duration-300 hover:scale-[1.035] sm:px-6 sm:py-3">{cn ? "查看项目作品" : "Explore Work"}<Icon name="arrow" size={16} /></Link><a href="mailto:leoyang1132@outlook.com">{cn ? "联系我" : "Contact"} <span>→</span></a></div></div>
     </section>
-  </main>;
+    {embedded && <p className="mobile-journey-scroll" aria-hidden="true">{cn ? '继续下滑 · 个人履历' : 'Scroll to the timeline'} ↓</p>}
+  </Root>;
 }

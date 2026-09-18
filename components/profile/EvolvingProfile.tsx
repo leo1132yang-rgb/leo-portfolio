@@ -8,7 +8,7 @@ import { getProfileArchive } from "@/data/profileArchiveCopy";
 import { TimelineAtmosphere } from "./TimelineAtmosphere";
 import styles from "./TimelineArchive.module.css";
 
-export function EvolvingProfile() {
+export function EvolvingProfile({ embedded = false }: { embedded?: boolean } = {}) {
   const { language } = useLanguage();
   const { copy, timeline: entries, focus, capabilities } = getProfileArchive(language);
   const timeline = useRef<HTMLOListElement>(null);
@@ -76,20 +76,22 @@ export function EvolvingProfile() {
     };
   }, [language]);
 
-  return <div ref={page} className={styles.page} data-profile-render="profile-editorial-archive" data-language={language} lang={language === "cn" ? "zh-CN" : "en"} data-profile-source="components/profile/EvolvingProfile.tsx">
-    <TimelineAtmosphere currentStage={currentStage} />
-    <SiteNavbar />
-    <main className={styles.main}>
-      <header className={styles.masthead}>
+  const Content = embedded ? 'div' : 'main';
+  const Title = embedded ? 'h2' : 'h1';
+  return <div ref={page} className={`${styles.page} ${embedded ? styles.embedded : ''}`} data-profile-render="profile-editorial-archive" data-language={language} lang={language === "cn" ? "zh-CN" : "en"} data-profile-source="components/profile/EvolvingProfile.tsx">
+    {!embedded && <TimelineAtmosphere currentStage={currentStage} />}
+    {!embedded && <SiteNavbar />}
+    <Content className={styles.main}>
+      {!embedded && <header className={styles.masthead}>
         <Link href="/">← {copy.home}</Link>
         <p>{copy.archive} <span>/</span> 2015 — {copy.now}</p>
         <a href="#timeline">{copy.read} <span>↓</span></a>
-      </header>
+      </header>}
 
       <section className={styles.intro} aria-labelledby="profile-title">
         <div>
           <p className={styles.eyebrow}>{copy.eyebrow}</p>
-          <h1 id="profile-title">Leo<i>.</i><span>/ 李阳</span></h1>
+          <Title id="profile-title">{embedded ? (language === 'cn' ? '个人履历' : 'Profile') : <>Leo<i>.</i><span>/ 李阳</span></>}</Title>
           <p className={styles.disciplines}>{copy.disciplines.map((word, index) => <span key={word}>{index > 0 && <i>×</i>}{word}</span>)}</p>
         </div>
         <div className={styles.introNote}>
@@ -139,12 +141,12 @@ export function EvolvingProfile() {
         <div className={styles.capabilityList}>{capabilities.map(cluster => <div key={cluster.id} data-reveal><span className={styles.annotation}>{cluster.index}</span><h3>{cluster.name}</h3><p>{cluster.note}</p><small>{cluster.skills.slice(0, 4).join(" / ")}</small></div>)}</div>
       </section>
 
-      <footer className={styles.ending} data-reveal>
+      {!embedded && <footer className={styles.ending} data-reveal>
         <p className={styles.eyebrow}>{copy.workNote}</p>
         <p className={styles.method}>{copy.method}</p>
         <div className={styles.belief}><p>{copy.belief[0]}</p><p>{copy.belief[1]}</p></div>
         <div className={styles.signoff}><span>LEO / 李阳 <i>© {new Date().getFullYear()}</i></span><p>{copy.signoff} / 2015 — {copy.now}</p><a href="#profile-title">{copy.back} ↑</a></div>
-      </footer>
-    </main>
+      </footer>}
+    </Content>
   </div>;
 }

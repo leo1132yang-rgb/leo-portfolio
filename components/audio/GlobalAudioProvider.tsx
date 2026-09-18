@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { usePathname } from 'next/navigation';
 import { vinylTracks } from '@/data/vinylTracks';
 import { AudioTransport, type TransportState } from '@/lib/audio/AudioTransport';
+import { useMobileViewport } from '@/hooks/useMobileViewport';
 export type AudioTrackKey = 'global'|'projects'|'room'|'childhood';
 export const audioTracks = {
   global:{key:'global',label:'GLOBAL',src:'/audio/global.mp3',baseVolume:.16},
@@ -14,6 +15,7 @@ const STORAGE_KEY='leo-global-audio';
 const routeFor=(path:string):AudioTrackKey=>path.startsWith('/projects')?'projects':path.startsWith('/other-side')?'room':'global';
 const clamp=(n:number)=>Number.isFinite(n)?Math.max(0,Math.min(1,n)):.8;
 function useAudioModel(){
+ const mobileViewport=useMobileViewport();
  const pathname=usePathname(), routeTrack=routeFor(pathname);
  const [override,setOverride]=useState<{path:string;track:AudioTrackKey}|null>(null);
  const currentTrack=override?.path===pathname?override.track:routeTrack;
@@ -36,7 +38,8 @@ function useAudioModel(){
  const usingVinyl=roomMounted&&currentTrack==='room';
  const source=usingVinyl?vinylTrack.src:audioTracks[currentTrack].src;
  const sourceKey=usingVinyl?vinylId:currentTrack;
- const shouldPlay=ready&&isEnabled&&(!usingVinyl||vinylWantsPlay);
+ // Keep the mobile reading journey silent until the visitor enters Room.
+ const shouldPlay=ready&&isEnabled&&!(mobileViewport&&pathname==='/')&&(!usingVinyl||vinylWantsPlay);
  const [retry,setRetry]=useState(0);
  useEffect(()=>{engine.current?.configure(sourceKey,source,shouldPlay,audioTracks[currentTrack].baseVolume*volume,!usingVinyl);},[sourceKey,source,shouldPlay,currentTrack,volume,usingVinyl,retry]);
  useEffect(()=>{

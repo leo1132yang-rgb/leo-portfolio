@@ -26,7 +26,7 @@ const ChildhoodGame = dynamic(() => import("@/components/leo-room/childhood/Chil
 const PhotoLightbox = dynamic(() => import("@/components/leo-room/PhotoLightbox").then(mod => mod.PhotoLightbox), { ssr: false });
 const MyWorldPage = dynamic(() => import("@/components/my-world/MyWorldPage").then(mod => mod.MyWorldPage), { ssr: false });
 
-export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
+export function OtherSide({ onRoomReady, exitHref = '/' }: { onRoomReady?: () => void; exitHref?: string } = {}) {
   const mobile = useRoomMobile();
   const [mobileActions,setMobileActions]=useState(false);
   const [mobileSheetOpen,setMobileSheetOpen]=useState(false);
@@ -85,7 +85,7 @@ export function OtherSide({ onRoomReady }: { onRoomReady?: () => void } = {}) {
     <main className={"leo-room" + (mobile ? " " + styles.mobileRoot : "") + (readingOpen ? " is-reading" : "") + (showVinyl ? " " + vinylStyles.listeningRoom : "")} data-room-mobile={mobile} data-vinyl-open={showVinyl} data-room-state={interactionState} data-aquarium-bright={interaction.aquariumBright} data-room-lighting={interaction.lightingMode} data-shelf-lamp={interaction.shelfLampOn} data-vinyl-playing={vinylIsPlaying} data-vinyl-intent={vinylWantsPlay} data-vinyl-track={vinylTrack.id} data-drawer-open={interaction.drawerOpen} data-reading-book={interaction.readingBook} data-living-item={interaction.activeLivingShelfItem ?? ""} data-plant-touch={interaction.plantTouch} data-chair-x={interaction.chairX.toFixed(3)} data-seat-active={interaction.seatActive} data-room-hotspot={activeHotspot ?? ""} data-room-content={content?.type ?? ""} onPointerDown={() => setShowExploreHint(false)}>
       <div inert={contentOpen}>
         <nav hidden={interaction.seatActive} className={styles.navigation} aria-label={cn ? "房间控制" : "Room controls"}>
-          <Link href="/" className={styles.button}>{cn ? "退出房间" : "Exit room"} ↗</Link>
+          <Link href={exitHref} className={styles.button}>{cn ? "退出房间" : "Exit room"} ↗</Link>
           {focused && <button type="button" className={styles.button} onClick={returnToExplore}>← {cn ? "返回探索" : "Back to explore"}</button>}
           <LanguageSwitch />
           {<button className={styles.button} aria-expanded={mobileActions} onClick={()=>setMobileActions(v=>!v)}>{cn?'探索':'Explore'}</button>}

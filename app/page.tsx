@@ -1,5 +1,5 @@
-import { LeoHero } from "@/components/LeoHero";
+import { ResponsiveHome } from "@/components/mobile/ResponsiveHome";
 
 export default function Home() {
-  return <LeoHero />;
+  return <ResponsiveHome />;
 }
